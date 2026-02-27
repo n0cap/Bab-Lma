@@ -1,0 +1,20 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, textStyles } from '../../theme';
+
+export function ProfileScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={[textStyles.h1, { color: colors.navy }]}>Paramètres</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
