@@ -14,6 +14,6 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-export function generateIdempotencyKey(): Promise<string> {
+export function generateIdempotencyKey(): string {
   return Crypto.randomUUID();
 }
