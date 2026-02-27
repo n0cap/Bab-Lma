@@ -23,7 +23,7 @@
 **Step 1: Initialize root package.json and workspace config**
 
 ```bash
-cd "/Users/iliasbitar_/Documents/Bab Lma"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 ```
 
 Create `pnpm-workspace.yaml`:
@@ -464,7 +464,7 @@ export * from './types';
 
 **Step 6: Install deps and verify build**
 
-Run: `cd "/Users/iliasbitar_/Documents/Bab Lma" && pnpm install && pnpm --filter @babloo/shared build`
+Run: `cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pnpm install && pnpm --filter @babloo/shared build`
 Expected: compiles with no errors
 
 **Step 7: Commit**
@@ -777,7 +777,7 @@ describe('computePrice dispatcher', () => {
 
 **Step 3: Run tests to verify they fail**
 
-Run: `cd "/Users/iliasbitar_/Documents/Bab Lma" && pnpm install && pnpm --filter @babloo/shared test`
+Run: `cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pnpm install && pnpm --filter @babloo/shared test`
 Expected: FAIL — modules not found
 
 **Step 4: Implement ménage pricing**
@@ -1620,7 +1620,7 @@ Add `dotenv` to api dependencies (add to package.json dependencies):
 
 Run:
 ```bash
-cd "/Users/iliasbitar_/Documents/Bab Lma" && pnpm install
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pnpm install
 ```
 
 Then start the server:
@@ -2119,7 +2119,7 @@ main()
 Run:
 ```bash
 createdb babloo 2>/dev/null || true
-cd "/Users/iliasbitar_/Documents/Bab Lma" && pnpm --filter @babloo/api db:generate
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pnpm --filter @babloo/api db:generate
 pnpm --filter @babloo/api db:migrate -- --name init
 ```
 
@@ -2186,7 +2186,7 @@ git commit -m "feat(api): add Prisma schema with all 13 tables and seed data"
 
 Run:
 ```bash
-cd "/Users/iliasbitar_/Documents/Bab Lma/apps"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/apps"
 npx create-expo-app@latest mobile --template blank-typescript
 ```
 
@@ -2198,7 +2198,7 @@ Then update `apps/mobile/package.json`:
 
 Run:
 ```bash
-cd "/Users/iliasbitar_/Documents/Bab Lma/apps/mobile"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/apps/mobile"
 npx expo install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context
 npx expo install @tanstack/react-query axios
 npx expo install expo-font expo-secure-store expo-splash-screen
@@ -2640,7 +2640,7 @@ mkdir -p apps/mobile/assets/fonts
 
 **Step 9: Verify mobile app launches**
 
-Run: `cd "/Users/iliasbitar_/Documents/Bab Lma" && pnpm install && pnpm --filter @babloo/mobile start`
+Run: `cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pnpm install && pnpm --filter @babloo/mobile start`
 Expected: Expo dev server starts, app shows AuthEntryScreen in simulator.
 
 **Step 10: Commit**
@@ -3390,7 +3390,7 @@ export function disconnectSocket(): void {
 **Step 3: Install uuid**
 
 ```bash
-cd "/Users/iliasbitar_/Documents/Bab Lma/apps/mobile"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/apps/mobile"
 npx expo install expo-crypto
 ```
 
@@ -3415,7 +3415,7 @@ git commit -m "feat(mobile): add API client and Socket.IO client scaffold"
 
 ```bash
 createdb babloo 2>/dev/null || true
-cd "/Users/iliasbitar_/Documents/Bab Lma"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 pnpm --filter @babloo/api db:migrate -- --name init
 pnpm --filter @babloo/api db:seed
 ```
