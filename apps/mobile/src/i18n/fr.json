@@ -85,6 +85,8 @@
     "details": "Détails",
     "location": "Localisation",
     "history": "Historique",
+    "tabActive": "En cours",
+    "tabHistory": "Historique",
     "statusDraft": "Brouillon",
     "statusSubmitted": "Soumise",
     "statusSearching": "Recherche",
@@ -94,6 +96,16 @@
     "statusInProgress": "En cours",
     "statusCompleted": "Terminée",
     "statusCancelled": "Annulée"
+  },
+  "rating": {
+    "title": "Évaluer le service",
+    "starLabel": "{{count}} étoile(s)",
+    "commentPlaceholder": "Laissez un commentaire (optionnel)",
+    "submit": "Envoyer l'évaluation",
+    "success": "Merci pour votre évaluation !",
+    "alreadyRated": "Vous avez déjà évalué cette commande.",
+    "evaluate": "Évaluer",
+    "yourRating": "Votre évaluation"
   },
   "chat": {
     "title": "Chat",

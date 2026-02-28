@@ -3,11 +3,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OrdersListScreen } from '../screens/orders/OrdersListScreen';
 import { OrderDetailScreen } from '../screens/orders/OrderDetailScreen';
 import { ChatScreen } from '../screens/chat/ChatScreen';
+import { RatingScreen } from '../screens/orders/RatingScreen';
 
 export type OrdersStackParamList = {
   OrdersList: undefined;
   OrderDetail: { orderId: string };
   Chat: { orderId: string };
+  Rating: { orderId: string };
 };
 
 const Stack = createNativeStackNavigator<OrdersStackParamList>();
@@ -18,6 +20,7 @@ export function OrdersStack() {
       <Stack.Screen name="OrdersList" component={OrdersListScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Rating" component={RatingScreen} />
     </Stack.Navigator>
   );
 }

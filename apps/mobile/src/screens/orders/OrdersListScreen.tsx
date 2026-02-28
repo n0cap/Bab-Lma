@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl,
@@ -29,6 +29,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   cancelled: { label: 'Annulée', color: colors.error, bg: '#FCEAEA' },
 };
 
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled']);
+
 interface OrderItem {
   id: string;
   serviceType: string;
@@ -38,8 +40,11 @@ interface OrderItem {
   createdAt: string;
 }
 
+type Tab = 'active' | 'history';
+
 export function OrdersListScreen() {
   const nav = useNavigation<Nav>();
+  const [activeTab, setActiveTab] = useState<Tab>('active');
   const {
     data,
     isLoading,
@@ -50,7 +55,19 @@ export function OrdersListScreen() {
     isFetchingNextPage,
   } = useOrders();
 
-  const orders = data?.pages.flatMap((page) => page.data) ?? [];
+  const allOrders = useMemo(
+    () => data?.pages.flatMap((page) => page.data) ?? [],
+    [data],
+  );
+
+  const filteredOrders = useMemo(
+    () => allOrders.filter((o: OrderItem) =>
+      activeTab === 'active'
+        ? !TERMINAL_STATUSES.has(o.status)
+        : TERMINAL_STATUSES.has(o.status),
+    ),
+    [allOrders, activeTab],
+  );
 
   const renderItem = ({ item }: { item: OrderItem }) => {
     const status = STATUS_LABELS[item.status] ?? STATUS_LABELS.draft;
@@ -98,11 +115,32 @@ export function OrdersListScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg, paddingHorizontal: spacing.lg }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.md, paddingHorizontal: spacing.lg }]}>
         Commandes
       </Text>
+
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'active' && styles.tabActive]}
+          onPress={() => setActiveTab('active')}
+        >
+          <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
+            En cours
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+          onPress={() => setActiveTab('history')}
+        >
+          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+            Historique
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 40 }}
@@ -117,7 +155,9 @@ export function OrdersListScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={[textStyles.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucune commande pour le moment.
+              {activeTab === 'active'
+                ? 'Aucune commande en cours.'
+                : 'Aucune commande terminée.'}
             </Text>
           </View>
         }
@@ -137,6 +177,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  tab: {
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: colors.navy,
+  },
+  tabText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  tabTextActive: {
+    color: colors.navy,
   },
   card: {
     backgroundColor: colors.surface,
