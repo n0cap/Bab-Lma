@@ -111,24 +111,35 @@ export async function otpRequest(phone: string, purpose: string): Promise<{ chal
   return { challengeId: challenge.id };
 }
 
-export async function otpVerify(challengeId: string, code: string): Promise<TokenPair> {
-  const challenge = await prisma.otpChallenge.findFirst({
+export async function otpVerify(
+  challengeId: string,
+  code: string,
+  fullName?: string,
+): Promise<TokenPair> {
+  // Atomic attempt increment — prevents TOCTOU race on attempt limit.
+  // If 0 rows updated the challenge is invalid, expired, consumed, or exhausted.
+  const { count } = await prisma.otpChallenge.updateMany({
     where: {
       id: challengeId,
       consumedAt: null,
       attempts: { lt: config.otp.maxAttempts },
       expiresAt: { gt: new Date() },
     },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (count === 0) {
+    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+  }
+
+  // Re-fetch to get codeHash and phone (updateMany doesn't return the row)
+  const challenge = await prisma.otpChallenge.findUnique({
+    where: { id: challengeId },
   });
 
   if (!challenge) {
     throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
   }
-
-  await prisma.otpChallenge.update({
-    where: { id: challenge.id },
-    data: { attempts: { increment: 1 } },
-  });
 
   const valid = await bcrypt.compare(code, challenge.codeHash);
   if (!valid) {
@@ -143,7 +154,10 @@ export async function otpVerify(challengeId: string, code: string): Promise<Toke
   let user = await prisma.user.findUnique({ where: { phone: challenge.phone } });
   if (!user) {
     user = await prisma.user.create({
-      data: { phone: challenge.phone, fullName: challenge.phone },
+      data: {
+        phone: challenge.phone,
+        fullName: fullName?.trim() || challenge.phone,
+      },
     });
   }
 
@@ -189,20 +203,21 @@ export async function refresh(rawRefreshToken: string): Promise<TokenPair> {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
-  await prisma.$transaction([
-    prisma.refreshToken.update({
-      where: { id: token.id },
-      data: { isRevoked: true, replacedBy: token.id },
-    }),
-    prisma.refreshToken.create({
+  // Interactive transaction: create new token first to get its ID for replacedBy
+  await prisma.$transaction(async (tx) => {
+    const newToken = await tx.refreshToken.create({
       data: {
         userId: token.userId,
         tokenHash: newHash,
         family: token.family,
         expiresAt,
       },
-    }),
-  ]);
+    });
+    await tx.refreshToken.update({
+      where: { id: token.id },
+      data: { isRevoked: true, replacedBy: newToken.id },
+    });
+  });
 
   const accessToken = issueAccessToken(token.user);
   return { accessToken, refreshToken: newRaw };
