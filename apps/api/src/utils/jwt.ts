@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import type { StringValue } from 'ms';
 import crypto from 'node:crypto';
 import { config } from '../config';
 
@@ -10,7 +11,7 @@ export interface JwtPayload {
 
 export function signAccessToken(payload: JwtPayload): string {
   return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.accessTtl,
+    expiresIn: config.jwt.accessTtl as StringValue,
   });
 }
 
