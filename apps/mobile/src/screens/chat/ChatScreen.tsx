@@ -6,8 +6,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { OrdersStackParamList } from '../../navigation/OrdersStack';
-import { useMessages, useOffers } from '../../services/queries/negotiation';
+import { useMessages, useOffers, usePoll } from '../../services/queries/negotiation';
 import { useSendMessage, useCreateOffer, useAcceptOffer } from '../../services/mutations/negotiation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useOrder } from '../../services/queries/orders';
 import { useSocket } from '../../contexts/SocketContext';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
@@ -43,6 +44,7 @@ export function ChatScreen() {
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const { socket } = useSocket();
+  const queryClient = useQueryClient();
 
   // Join socket room
   useEffect(() => {
@@ -55,6 +57,33 @@ export function ChatScreen() {
     if (!messagesData?.pages) return [];
     return messagesData.pages.flatMap((page) => page.data ?? []);
   }, [messagesData]);
+
+  // Track max seq for polling cursor
+  const maxSeq = useMemo(() => {
+    let seq = 0;
+    for (const m of messages) {
+      if (m.seq > seq) seq = m.seq;
+    }
+    return seq;
+  }, [messages]);
+
+  // Polling fallback — only when socket is disconnected
+  const { data: pollData } = usePoll(orderId, maxSeq, !isConnected);
+
+  // When poll returns new data, invalidate caches so queries refetch
+  useEffect(() => {
+    if (!pollData) return;
+    const hasNew =
+      (pollData.messages?.length > 0) ||
+      (pollData.offers?.length > 0) ||
+      (pollData.statusEvents?.length > 0);
+    if (hasNew) {
+      queryClient.invalidateQueries({ queryKey: ['messages', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['offers', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    }
+  }, [pollData, orderId, queryClient]);
 
   const handleSend = () => {
     const text = input.trim();
