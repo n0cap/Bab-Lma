@@ -25,11 +25,11 @@ export function ForgotPasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.sm }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.sm }]} accessibilityRole="header">
         Mot de passe oublié
       </Text>
       <Text style={[textStyles.body, { color: colors.textSec, marginBottom: spacing.xl }]}>
@@ -44,12 +44,15 @@ export function ForgotPasswordScreen() {
         onChangeText={setPhone}
         keyboardType="phone-pad"
         textContentType="telephoneNumber"
+        accessibilityLabel="Numéro de téléphone"
       />
 
       <TouchableOpacity
         style={[styles.btn, otpRequest.isPending && styles.btnDisabled]}
         onPress={handleSubmit}
         disabled={otpRequest.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Recevoir un code"
       >
         {otpRequest.isPending ? (
           <ActivityIndicator color={colors.white} />

@@ -12,20 +12,20 @@ export function AuthEntryScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[textStyles.display, { color: colors.navy }]}>Babloo</Text>
+      <Text style={[textStyles.display, { color: colors.navy }]} accessibilityRole="header">Babloo</Text>
       <Text style={[textStyles.body, { color: colors.textSec, marginTop: 8, marginBottom: 36 }]}>
         Vos services à domicile
       </Text>
 
-      <TouchableOpacity style={styles.btnPrimary} onPress={() => nav.navigate('SignInEmail')}>
+      <TouchableOpacity style={styles.btnPrimary} onPress={() => nav.navigate('SignInEmail')} accessibilityRole="button" accessibilityLabel="Connexion par email">
         <Text style={styles.btnPrimaryText}>Connexion par email</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('SignInPhone')}>
+      <TouchableOpacity style={styles.btnOutline} onPress={() => nav.navigate('SignInPhone')} accessibilityRole="button" accessibilityLabel="Connexion par téléphone">
         <Text style={styles.btnOutlineText}>Connexion par téléphone</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => nav.navigate('SignUpEmail')} style={{ marginTop: spacing.lg }}>
+      <TouchableOpacity onPress={() => nav.navigate('SignUpEmail')} style={{ marginTop: spacing.lg, minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Inscrivez-vous">
         <Text style={[textStyles.body, { color: colors.clay }]}>
           Pas encore de compte ? Inscrivez-vous
         </Text>

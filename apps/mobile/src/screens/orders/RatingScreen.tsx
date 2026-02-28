@@ -45,11 +45,19 @@ export function RatingScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity
+        onPress={() => nav.goBack()}
+        style={styles.back}
+        accessibilityRole="button"
+        accessibilityLabel="Retour"
+      >
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.xl }]}>
+      <Text
+        style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.xl }]}
+        accessibilityRole="header"
+      >
         Évaluer le service
       </Text>
 
@@ -84,6 +92,7 @@ export function RatingScreen() {
         numberOfLines={4}
         maxLength={500}
         textAlignVertical="top"
+        accessibilityLabel="Laissez un commentaire (optionnel)"
       />
 
       {/* Submit */}
@@ -91,6 +100,8 @@ export function RatingScreen() {
         style={[styles.submitBtn, (stars < 1 || submitRating.isPending) && styles.btnDisabled]}
         onPress={handleSubmit}
         disabled={stars < 1 || submitRating.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Envoyer l'évaluation"
       >
         {submitRating.isPending ? (
           <ActivityIndicator color={colors.white} />
@@ -118,6 +129,7 @@ const styles = StyleSheet.create({
   },
   starBtn: {
     padding: 4,
+    minHeight: 48,
   },
   star: {
     fontSize: 40,

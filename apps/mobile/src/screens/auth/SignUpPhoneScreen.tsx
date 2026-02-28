@@ -26,11 +26,11 @@ export function SignUpPhoneScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
         Inscription par téléphone
       </Text>
 
@@ -41,6 +41,7 @@ export function SignUpPhoneScreen() {
         value={fullName}
         onChangeText={setFullName}
         textContentType="name"
+        accessibilityLabel="Nom complet"
       />
 
       <TextInput
@@ -51,12 +52,15 @@ export function SignUpPhoneScreen() {
         onChangeText={setPhone}
         keyboardType="phone-pad"
         textContentType="telephoneNumber"
+        accessibilityLabel="Numéro de téléphone"
       />
 
       <TouchableOpacity
         style={[styles.btn, otpRequest.isPending && styles.btnDisabled]}
         onPress={handleSubmit}
         disabled={otpRequest.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Recevoir un code"
       >
         {otpRequest.isPending ? (
           <ActivityIndicator color={colors.white} />
@@ -65,7 +69,7 @@ export function SignUpPhoneScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => nav.navigate('SignInPhone')} style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
+      <TouchableOpacity onPress={() => nav.navigate('SignInPhone')} style={{ marginTop: spacing.lg, alignSelf: 'center', minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Connectez-vous">
         <Text style={[textStyles.body, { color: colors.clay }]}>
           Déjà un compte ? Connectez-vous
         </Text>

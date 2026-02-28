@@ -3,6 +3,7 @@ import { updateProfileSchema } from '@babloo/shared';
 import { validate } from '../middleware/validate';
 import { prisma } from '../db';
 import { AppError } from '../middleware/error.handler';
+import { COMMON } from '../constants/errors';
 
 export const userRouter = Router();
 
@@ -21,7 +22,7 @@ userRouter.get('/me', asyncHandler(async (req, res) => {
       createdAt: true, updatedAt: true,
     },
   });
-  if (!user) throw new AppError(404, 'NOT_FOUND', 'Utilisateur non trouvé');
+  if (!user) throw new AppError(404, 'NOT_FOUND', COMMON.NOT_FOUND);
   res.json({ data: user });
 }));
 

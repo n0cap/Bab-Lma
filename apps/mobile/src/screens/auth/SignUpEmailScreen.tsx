@@ -29,11 +29,11 @@ export function SignUpEmailScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
         Inscription par email
       </Text>
 
@@ -44,6 +44,7 @@ export function SignUpEmailScreen() {
         value={fullName}
         onChangeText={setFullName}
         textContentType="name"
+        accessibilityLabel="Nom complet"
       />
 
       <TextInput
@@ -55,6 +56,7 @@ export function SignUpEmailScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         textContentType="emailAddress"
+        accessibilityLabel="Adresse email"
       />
 
       <TextInput
@@ -65,12 +67,15 @@ export function SignUpEmailScreen() {
         onChangeText={setPassword}
         secureTextEntry
         textContentType="newPassword"
+        accessibilityLabel="Mot de passe"
       />
 
       <TouchableOpacity
         style={[styles.btn, signup.isPending && styles.btnDisabled]}
         onPress={handleSubmit}
         disabled={signup.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Créer un compte"
       >
         {signup.isPending ? (
           <ActivityIndicator color={colors.white} />
@@ -79,7 +84,7 @@ export function SignUpEmailScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => nav.navigate('SignInEmail')} style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
+      <TouchableOpacity onPress={() => nav.navigate('SignInEmail')} style={{ marginTop: spacing.lg, alignSelf: 'center', minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Connectez-vous">
         <Text style={[textStyles.body, { color: colors.clay }]}>
           Déjà un compte ? Connectez-vous
         </Text>

@@ -92,16 +92,27 @@ export function OrderDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity
+        onPress={() => nav.goBack()}
+        style={styles.back}
+        accessibilityRole="button"
+        accessibilityLabel="Retour"
+      >
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[textStyles.h1, { color: colors.navy }]}>
+        <Text
+          style={[textStyles.h1, { color: colors.navy }]}
+          accessibilityRole="header"
+        >
           {SERVICE_LABELS[order.serviceType] ?? order.serviceType}
         </Text>
-        <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
+        <View
+          style={[styles.badge, { backgroundColor: statusInfo.bg }]}
+          accessibilityLabel={`Statut : ${statusInfo.label}`}
+        >
           <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
         </View>
       </View>
@@ -215,6 +226,8 @@ export function OrderDetailScreen() {
         <TouchableOpacity
           style={styles.rateBtn}
           onPress={() => nav.navigate('Rating', { orderId })}
+          accessibilityRole="button"
+          accessibilityLabel="Évaluer le service"
         >
           <Text style={styles.rateBtnText}>★ Évaluer</Text>
         </TouchableOpacity>
@@ -225,6 +238,8 @@ export function OrderDetailScreen() {
         <TouchableOpacity
           style={styles.negotiateBtn}
           onPress={() => nav.navigate('Chat', { orderId })}
+          accessibilityRole="button"
+          accessibilityLabel="Négocier le prix"
         >
           <Text style={styles.negotiateBtnText}>Négocier</Text>
         </TouchableOpacity>
@@ -236,6 +251,8 @@ export function OrderDetailScreen() {
           style={[styles.cancelBtn, cancelOrder.isPending && styles.btnDisabled]}
           onPress={handleCancel}
           disabled={cancelOrder.isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Annuler la commande"
         >
           {cancelOrder.isPending ? (
             <ActivityIndicator color={colors.white} />

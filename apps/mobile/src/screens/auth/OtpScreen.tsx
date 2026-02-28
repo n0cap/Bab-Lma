@@ -47,11 +47,11 @@ export function OtpScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.sm }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.sm }]} accessibilityRole="header">
         Code de vérification
       </Text>
       <Text style={[textStyles.body, { color: colors.textSec, marginBottom: spacing.xl }]}>
@@ -67,12 +67,15 @@ export function OtpScreen() {
         keyboardType="number-pad"
         maxLength={6}
         textContentType="oneTimeCode"
+        accessibilityLabel="Code de vérification"
       />
 
       <TouchableOpacity
         style={[styles.btn, otpVerify.isPending && styles.btnDisabled]}
         onPress={handleVerify}
         disabled={otpVerify.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Vérifier"
       >
         {otpVerify.isPending ? (
           <ActivityIndicator color={colors.white} />
@@ -84,7 +87,9 @@ export function OtpScreen() {
       <TouchableOpacity
         onPress={handleResend}
         disabled={otpRequest.isPending}
-        style={{ marginTop: spacing.lg, alignSelf: 'center' }}
+        style={{ marginTop: spacing.lg, alignSelf: 'center', minHeight: 48 }}
+        accessibilityRole="button"
+        accessibilityLabel="Renvoyer le code"
       >
         <Text style={[textStyles.body, { color: otpRequest.isPending ? colors.textMuted : colors.clay }]}>
           Renvoyer le code

@@ -78,11 +78,11 @@ export function OrderConfirmScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
           <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
         </TouchableOpacity>
 
-        <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]}>
+        <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
           Confirmer la commande
         </Text>
 
@@ -113,6 +113,7 @@ export function OrderConfirmScreen() {
           placeholderTextColor={colors.textMuted}
           value={location}
           onChangeText={setLocation}
+          accessibilityLabel="Adresse de service"
         />
 
         {/* Confirm button */}
@@ -120,6 +121,8 @@ export function OrderConfirmScreen() {
           style={[styles.btn, createOrder.isPending && styles.btnDisabled]}
           onPress={handleConfirm}
           disabled={createOrder.isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Confirmer la commande"
         >
           {createOrder.isPending ? (
             <ActivityIndicator color={colors.white} />

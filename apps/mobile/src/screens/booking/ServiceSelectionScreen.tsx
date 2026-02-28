@@ -18,7 +18,7 @@ export function ServiceSelectionScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.xl }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.xl }]} accessibilityRole="header">
         Choisissez un service
       </Text>
 
@@ -27,6 +27,8 @@ export function ServiceSelectionScreen() {
           key={svc.key}
           style={styles.card}
           onPress={() => nav.navigate('ServiceDetail', { serviceType: svc.key })}
+          accessibilityRole="button"
+          accessibilityLabel={`${svc.label} — ${svc.desc}`}
         >
           <Text style={[textStyles.h2, { color: colors.navy }]}>{svc.label}</Text>
           <Text style={[textStyles.body, { color: colors.textSec, marginTop: 4 }]}>{svc.desc}</Text>

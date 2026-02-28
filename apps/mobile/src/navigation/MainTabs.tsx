@@ -1,14 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { HomeStack } from './HomeStack';
+import type { HomeStackParamList } from './HomeStack';
 import { OrdersStack } from './OrdersStack';
+import type { OrdersStackParamList } from './OrdersStack';
 import { ProfileScreen } from '../screens/settings/ProfileScreen';
 import { colors } from '../theme';
 
 export type MainTabsParamList = {
-  HomeTab: undefined;
-  OrdersTab: undefined;
-  LoyaltyTab: undefined;
+  HomeTab: NavigatorScreenParams<HomeStackParamList>;
+  OrdersTab: NavigatorScreenParams<OrdersStackParamList>;
   SettingsTab: undefined;
 };
 

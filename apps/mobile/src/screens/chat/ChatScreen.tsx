@@ -145,10 +145,19 @@ export function ChatScreen() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => nav.goBack()}>
+          <TouchableOpacity
+            onPress={() => nav.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
             <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
           </TouchableOpacity>
-          <Text style={[textStyles.h2, { color: colors.navy }]}>Chat</Text>
+          <Text
+            style={[textStyles.h2, { color: colors.navy }]}
+            accessibilityRole="header"
+          >
+            Chat
+          </Text>
           <View style={[styles.connectionDot, { backgroundColor: isConnected ? colors.success : colors.error }]} />
         </View>
 
@@ -209,11 +218,14 @@ export function ChatScreen() {
             }}
             multiline
             maxLength={2000}
+            accessibilityLabel="Message"
           />
           <TouchableOpacity
             style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!input.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Envoyer le message"
           >
             <Text style={styles.sendBtnText}>↑</Text>
           </TouchableOpacity>
@@ -313,11 +325,12 @@ const styles = StyleSheet.create({
   },
   sendBtn: {
     backgroundColor: colors.navy,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 48,
   },
   sendBtnDisabled: { opacity: 0.4 },
   sendBtnText: {
