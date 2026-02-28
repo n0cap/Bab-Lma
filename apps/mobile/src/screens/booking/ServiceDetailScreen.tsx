@@ -86,14 +86,17 @@ export function ServiceDetailScreen() {
               value={surface}
               onChangeText={setSurface}
               keyboardType="number-pad"
+              accessibilityLabel="Surface en mètres carrés"
             />
             <Text style={styles.label}>Type de nettoyage</Text>
             <View style={styles.row}>
               {(['simple', 'deep'] as const).map((t) => (
                 <TouchableOpacity
                   key={t}
-                  style={[styles.chip, cleanType === t && styles.chipActive]}
+                  style={[styles.chip, cleanType === t && styles.chipActive, { minHeight: 48 }]}
                   onPress={() => setCleanType(t)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t === 'simple' ? 'Nettoyage simple' : 'Nettoyage en profondeur'}
                 >
                   <Text style={[styles.chipText, cleanType === t && styles.chipTextActive]}>
                     {t === 'simple' ? 'Simple' : 'En profondeur'}
@@ -106,8 +109,10 @@ export function ServiceDetailScreen() {
               {(['solo', 'duo', 'squad'] as const).map((t) => (
                 <TouchableOpacity
                   key={t}
-                  style={[styles.chip, teamType === t && styles.chipActive]}
+                  style={[styles.chip, teamType === t && styles.chipActive, { minHeight: 48 }]}
                   onPress={() => setTeamType(t)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t === 'solo' ? 'Équipe solo' : t === 'duo' ? 'Équipe duo' : 'Équipe complète'}
                 >
                   <Text style={[styles.chipText, teamType === t && styles.chipTextActive]}>
                     {t === 'solo' ? 'Solo' : t === 'duo' ? 'Duo' : 'Équipe'}
@@ -128,6 +133,7 @@ export function ServiceDetailScreen() {
               value={guests}
               onChangeText={setGuests}
               keyboardType="number-pad"
+              accessibilityLabel="Nombre de convives"
             />
           </>
         );
@@ -142,6 +148,7 @@ export function ServiceDetailScreen() {
               value={children}
               onChangeText={setChildren}
               keyboardType="number-pad"
+              accessibilityLabel="Nombre d'enfants"
             />
             <Text style={styles.label}>Durée (heures)</Text>
             <TextInput
@@ -151,6 +158,7 @@ export function ServiceDetailScreen() {
               value={hours}
               onChangeText={setHours}
               keyboardType="number-pad"
+              accessibilityLabel="Durée en heures"
             />
           </>
         );
@@ -160,11 +168,11 @@ export function ServiceDetailScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
           <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
         </TouchableOpacity>
 
-        <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]}>
+        <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
           {serviceType === 'menage' ? 'Ménage' : serviceType === 'cuisine' ? 'Cuisine' : 'Garde d\'enfants'}
         </Text>
 
@@ -191,6 +199,8 @@ export function ServiceDetailScreen() {
           style={[styles.btn, (!getParams() || !estimate.data) && styles.btnDisabled]}
           onPress={handleContinue}
           disabled={!getParams() || !estimate.data}
+          accessibilityRole="button"
+          accessibilityLabel="Continuer"
         >
           <Text style={styles.btnText}>Continuer</Text>
         </TouchableOpacity>

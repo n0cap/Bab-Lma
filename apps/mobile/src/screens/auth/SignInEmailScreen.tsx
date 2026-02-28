@@ -28,11 +28,11 @@ export function SignInEmailScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back}>
+      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
         <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
       </TouchableOpacity>
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]}>
+      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
         Connexion par email
       </Text>
 
@@ -45,6 +45,7 @@ export function SignInEmailScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         textContentType="emailAddress"
+        accessibilityLabel="Adresse email"
       />
 
       <TextInput
@@ -55,9 +56,10 @@ export function SignInEmailScreen() {
         onChangeText={setPassword}
         secureTextEntry
         textContentType="password"
+        accessibilityLabel="Mot de passe"
       />
 
-      <TouchableOpacity onPress={() => nav.navigate('ForgotPassword')} style={{ alignSelf: 'flex-end', marginBottom: spacing.lg }}>
+      <TouchableOpacity onPress={() => nav.navigate('ForgotPassword')} style={{ alignSelf: 'flex-end', marginBottom: spacing.lg, minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Mot de passe oublié">
         <Text style={[textStyles.body, { color: colors.clay }]}>Mot de passe oublié ?</Text>
       </TouchableOpacity>
 
@@ -65,6 +67,8 @@ export function SignInEmailScreen() {
         style={[styles.btn, login.isPending && styles.btnDisabled]}
         onPress={handleSubmit}
         disabled={login.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Se connecter"
       >
         {login.isPending ? (
           <ActivityIndicator color={colors.white} />
@@ -73,7 +77,7 @@ export function SignInEmailScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => nav.navigate('SignUpEmail')} style={{ marginTop: spacing.lg }}>
+      <TouchableOpacity onPress={() => nav.navigate('SignUpEmail')} style={{ marginTop: spacing.lg, minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Inscrivez-vous">
         <Text style={[textStyles.body, { color: colors.clay }]}>
           Pas encore de compte ? Inscrivez-vous
         </Text>
