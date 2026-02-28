@@ -143,12 +143,14 @@ export async function acceptOffer(
   orderId: string,
   offerId: string,
   order: { floorPrice: number; status: string },
+  participantRole: 'client' | 'pro',
 ) {
   // Validate order is in negotiating state
   if (order.status !== 'negotiating') {
     throw new AppError(409, 'INVALID_STATE', 'La commande n\'est pas en négociation');
   }
 
+  // Pre-flight check (non-atomic, for fast-fail with clear errors)
   const offer = await prisma.negotiationOffer.findUnique({
     where: { id: offerId },
   });
@@ -166,12 +168,21 @@ export async function acceptOffer(
     throw new AppError(403, 'FORBIDDEN', 'Vous ne pouvez pas accepter votre propre offre');
   }
 
-  // Atomic price lock transaction
+  // Atomic price lock transaction with guarded update
   const result = await prisma.$transaction(async (tx) => {
-    // 1. Accept the offer
-    const accepted = await tx.negotiationOffer.update({
-      where: { id: offerId },
+    // 1. Guarded accept: only succeeds if offer is still pending for this order
+    const { count } = await tx.negotiationOffer.updateMany({
+      where: { id: offerId, orderId, status: 'pending' },
       data: { status: 'accepted', acceptedAt: new Date() },
+    });
+
+    if (count === 0) {
+      throw new AppError(409, 'INVALID_STATE', 'Cette offre n\'est plus en attente');
+    }
+
+    // Re-fetch the accepted offer for return value
+    const accepted = await tx.negotiationOffer.findUniqueOrThrow({
+      where: { id: offerId },
     });
 
     // 2. Reject all other pending offers for this order
@@ -197,7 +208,7 @@ export async function acceptOffer(
         fromStatus: 'negotiating',
         toStatus: 'accepted',
         actorUserId: userId,
-        actorRole: 'client', // will be overridden by caller's role
+        actorRole: participantRole,
       },
     });
 
