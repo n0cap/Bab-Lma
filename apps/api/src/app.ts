@@ -7,6 +7,8 @@ import { authMiddleware } from './middleware/auth.middleware';
 import { errorHandler } from './middleware/error.handler';
 import { authRouter } from './routes/auth.routes';
 import { userRouter } from './routes/user.routes';
+import { pricingRouter } from './routes/pricing.routes';
+import { orderRouter } from './routes/order.routes';
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.get('/v1/health', (_req, res) => {
 // Routes
 app.use('/v1/auth', authRouter);
 app.use('/v1/users', userRouter);
+app.use('/v1/pricing', pricingRouter);
+app.use('/v1/orders', orderRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
