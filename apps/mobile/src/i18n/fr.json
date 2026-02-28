@@ -43,7 +43,8 @@
     "title": "Babloo",
     "subtitle": "Vos services à domicile",
     "services": "Services",
-    "bookService": "Réserver un service"
+    "bookService": "Réserver un service",
+    "recentOrders": "Commandes récentes"
   },
   "booking": {
     "selectService": "Choisissez un service",
@@ -81,6 +82,8 @@
   "orders": {
     "title": "Commandes",
     "empty": "Aucune commande pour le moment.",
+    "emptyActive": "Aucune commande en cours.",
+    "emptyHistory": "Aucune commande terminée.",
     "floorPrice": "Prix plancher",
     "details": "Détails",
     "location": "Localisation",
@@ -106,6 +109,24 @@
     "alreadyRated": "Vous avez déjà évalué cette commande.",
     "evaluate": "Évaluer",
     "yourRating": "Votre évaluation"
+  },
+  "profile": {
+    "title": "Mon profil",
+    "fullName": "Nom complet",
+    "phone": "Téléphone",
+    "email": "E-mail",
+    "save": "Enregistrer",
+    "saved": "Profil mis à jour !",
+    "logout": "Se déconnecter",
+    "logoutConfirm": "Êtes-vous sûr de vouloir vous déconnecter ?",
+    "logoutYes": "Oui, déconnecter",
+    "logoutNo": "Annuler"
+  },
+  "errors": {
+    "network": "Erreur de connexion. Vérifiez votre réseau.",
+    "server": "Erreur du serveur. Réessayez plus tard.",
+    "unknown": "Une erreur est survenue.",
+    "validation": "Veuillez vérifier les champs."
   },
   "chat": {
     "title": "Chat",
