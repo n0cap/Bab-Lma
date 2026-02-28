@@ -86,13 +86,14 @@ negotiationRouter.post(
   '/offers/:offerId/accept',
   asyncHandler(async (req, res) => {
     const { id, offerId } = offerIdParam.parse(req.params);
-    const { order } = await negotiationService.checkParticipant(req.user!.userId, id);
+    const { order, participantRole } = await negotiationService.checkParticipant(req.user!.userId, id);
 
     const result = await negotiationService.acceptOffer(
       req.user!.userId,
       id,
       offerId,
       order,
+      participantRole,
     );
     res.json({ data: result });
   }),

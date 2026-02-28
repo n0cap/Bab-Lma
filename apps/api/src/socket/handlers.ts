@@ -111,7 +111,7 @@ async function handleOfferAccept(
   if (!orderId || !offerId) return;
 
   try {
-    const { order } = await negotiationService.checkParticipant(
+    const { order, participantRole } = await negotiationService.checkParticipant(
       socket.data.userId,
       orderId,
     );
@@ -121,6 +121,7 @@ async function handleOfferAccept(
       orderId,
       offerId,
       order,
+      participantRole,
     );
 
     io.to(roomName(orderId)).emit('offer:accepted', result.offer);
