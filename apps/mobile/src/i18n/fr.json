@@ -25,7 +25,19 @@
     "otpSent": "Code envoyé par SMS",
     "enterOtp": "Entrez le code à 6 chiffres",
     "resendOtp": "Renvoyer le code",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "emailPlaceholder": "votre@email.com",
+    "passwordPlaceholder": "Votre mot de passe",
+    "phonePlaceholder": "+212 6XX XXX XXX",
+    "fullNamePlaceholder": "Votre nom complet",
+    "otpTitle": "Code de vérification",
+    "otpSubtitle": "Entrez le code envoyé au {{phone}}",
+    "signInWithEmail": "Connexion par email",
+    "signInWithPhone": "Connexion par téléphone",
+    "signUpWithEmail": "Inscription par email",
+    "signUpWithPhone": "Inscription par téléphone",
+    "createAccount": "Créer un compte",
+    "networkError": "Erreur de connexion. Vérifiez votre réseau."
   },
   "home": {
     "title": "Babloo",

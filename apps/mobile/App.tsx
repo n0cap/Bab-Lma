@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
 import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -43,8 +44,10 @@ export default function App() {
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="dark-content" />
-        <RootNavigator />
+        <AuthProvider>
+          <StatusBar barStyle="dark-content" />
+          <RootNavigator />
+        </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

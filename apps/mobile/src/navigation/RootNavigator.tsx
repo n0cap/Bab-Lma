@@ -1,15 +1,25 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
-
-// Temporary: always show auth. Will be replaced by AuthContext in M2.
-const IS_AUTHENTICATED = false;
+import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme';
 
 export function RootNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
+        <ActivityIndicator size="large" color={colors.navy} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      {IS_AUTHENTICATED ? <MainTabs /> : <AuthStack />}
+      {isAuthenticated ? <MainTabs /> : <AuthStack />}
     </NavigationContainer>
   );
 }
