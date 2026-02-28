@@ -5,7 +5,7 @@ export const createOfferSchema = z.object({
 });
 
 export const messageSchema = z.object({
-  content: z.string().min(1).max(2000).trim(),
+  content: z.string().max(2000).transform((s) => s.trim()).pipe(z.string().min(1, 'Le message ne peut pas être vide')),
   clientMessageId: z.string().uuid().optional(),
 });
 

@@ -38,7 +38,8 @@ async function handleMessageSend(
   io: Server,
   payload: { orderId: string; content: string; clientMessageId?: string },
 ) {
-  const { orderId, content, clientMessageId } = payload;
+  const { orderId, clientMessageId } = payload;
+  const content = typeof payload.content === 'string' ? payload.content.trim().slice(0, 2000) : '';
   if (!orderId || !content) return;
 
   try {
@@ -50,7 +51,7 @@ async function handleMessageSend(
     const message = await negotiationService.sendMessage(
       socket.data.userId,
       orderId,
-      content.trim().slice(0, 2000),
+      content,
       participantRole,
       clientMessageId,
     );
