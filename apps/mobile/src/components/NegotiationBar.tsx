@@ -38,6 +38,8 @@ export function NegotiationBar({
             style={styles.acceptBtn}
             onPress={onAcceptOffer}
             disabled={isSending}
+            accessibilityRole="button"
+            accessibilityLabel={`Accepter l'offre de ${pendingOfferFromOther.amount} MAD`}
           >
             <Text style={styles.acceptBtnText}>Accepter</Text>
           </TouchableOpacity>
@@ -57,19 +59,25 @@ export function NegotiationBar({
           minimumTrackTintColor={colors.navy}
           maximumTrackTintColor={colors.border}
           thumbTintColor={colors.navy}
+          accessibilityLabel={`Prix de l'offre : ${snappedAmount} MAD`}
         />
         <Text style={[textStyles.body, { color: colors.textMuted }]}>{ceiling}</Text>
       </View>
 
       {/* Amount display + send */}
       <View style={styles.sendRow}>
-        <Text style={[textStyles.h2, { color: colors.clay }]}>
+        <Text
+          style={[textStyles.h2, { color: colors.clay }]}
+          accessibilityLabel={`Montant sélectionné : ${snappedAmount} MAD`}
+        >
           {snappedAmount} MAD
         </Text>
         <TouchableOpacity
           style={[styles.sendBtn, isSending && styles.sendBtnDisabled]}
           onPress={() => onSendOffer(snappedAmount)}
           disabled={isSending}
+          accessibilityRole="button"
+          accessibilityLabel={`Proposer ${snappedAmount} MAD`}
         >
           <Text style={styles.sendBtnText}>Proposer</Text>
         </TouchableOpacity>
@@ -101,6 +109,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 6,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   acceptBtnText: {
     color: colors.white,

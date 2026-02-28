@@ -80,6 +80,8 @@ export function OrdersListScreen() {
       <TouchableOpacity
         style={styles.card}
         onPress={() => nav.navigate('OrderDetail', { orderId: item.id })}
+        accessibilityRole="button"
+        accessibilityLabel={`Commande ${SERVICE_LABELS[item.serviceType] ?? item.serviceType}, ${status.label}, ${item.finalPrice != null ? item.finalPrice : item.floorPrice} MAD`}
       >
         <View style={styles.cardHeader}>
           <Text style={[textStyles.h2, { color: colors.navy }]}>
@@ -115,7 +117,10 @@ export function OrdersListScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.md, paddingHorizontal: spacing.lg }]}>
+      <Text
+        style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.md, paddingHorizontal: spacing.lg }]}
+        accessibilityRole="header"
+      >
         Commandes
       </Text>
 
@@ -124,6 +129,9 @@ export function OrdersListScreen() {
         <TouchableOpacity
           style={[styles.tab, activeTab === 'active' && styles.tabActive]}
           onPress={() => setActiveTab('active')}
+          accessibilityRole="tab"
+          accessibilityLabel="En cours"
+          accessibilityState={{ selected: activeTab === 'active' }}
         >
           <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
             En cours
@@ -132,6 +140,9 @@ export function OrdersListScreen() {
         <TouchableOpacity
           style={[styles.tab, activeTab === 'history' && styles.tabActive]}
           onPress={() => setActiveTab('history')}
+          accessibilityRole="tab"
+          accessibilityLabel="Historique"
+          accessibilityState={{ selected: activeTab === 'history' }}
         >
           <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
             Historique
@@ -188,6 +199,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    minHeight: 48,
   },
   tabActive: {
     borderBottomColor: colors.navy,
