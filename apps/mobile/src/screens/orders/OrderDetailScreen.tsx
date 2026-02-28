@@ -4,6 +4,7 @@ import {
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { OrdersStackParamList } from '../../navigation/OrdersStack';
 import { useOrder } from '../../services/queries/orders';
@@ -11,6 +12,7 @@ import { useCancelOrder } from '../../services/mutations/orders';
 import { colors, textStyles, spacing } from '../../theme';
 
 type Route = RouteProp<OrdersStackParamList, 'OrderDetail'>;
+type Nav = NativeStackNavigationProp<OrdersStackParamList>;
 
 const SERVICE_LABELS: Record<string, string> = {
   menage: 'Ménage',
@@ -43,7 +45,7 @@ interface StatusEvent {
 }
 
 export function OrderDetailScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { orderId } = route.params;
   const { data: order, isLoading, refetch } = useOrder(orderId);
@@ -106,10 +108,24 @@ export function OrderDetailScreen() {
 
       {/* Price */}
       <View style={styles.priceBox}>
-        <Text style={[textStyles.h3, { color: colors.navy }]}>Prix plancher</Text>
-        <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
-          {order.floorPrice} MAD
-        </Text>
+        {order.finalPrice != null ? (
+          <>
+            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix final</Text>
+            <Text style={[textStyles.h2, { color: colors.success, marginTop: 4 }]}>
+              {order.finalPrice} MAD
+            </Text>
+            <Text style={[textStyles.body, { color: colors.textMuted, fontSize: 12, marginTop: 2 }]}>
+              Prix plancher : {order.floorPrice} MAD
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix plancher</Text>
+            <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
+              {order.floorPrice} MAD
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Details */}
@@ -175,6 +191,16 @@ export function OrderDetailScreen() {
             );
           })}
         </View>
+      )}
+
+      {/* Negotiate button (only during negotiating status) */}
+      {order.status === 'negotiating' && (
+        <TouchableOpacity
+          style={styles.negotiateBtn}
+          onPress={() => nav.navigate('Chat', { orderId })}
+        >
+          <Text style={styles.negotiateBtnText}>Négocier</Text>
+        </TouchableOpacity>
       )}
 
       {/* Cancel button */}
@@ -284,6 +310,18 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   cancelBtnText: {
+    color: colors.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 15,
+  },
+  negotiateBtn: {
+    backgroundColor: colors.navy,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  negotiateBtnText: {
     color: colors.white,
     fontFamily: 'DMSans_700Bold',
     fontSize: 15,

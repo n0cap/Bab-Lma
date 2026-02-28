@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { config } from './config';
 import { app } from './app';
+import { setupSocket } from './socket';
 
 const httpServer = createServer(app);
 const io = new SocketServer(httpServer, {
@@ -10,6 +11,9 @@ const io = new SocketServer(httpServer, {
     credentials: true,
   },
 });
+
+// Wire Socket.IO auth + handlers
+setupSocket(io);
 
 // Start server
 httpServer.listen(config.port, () => {

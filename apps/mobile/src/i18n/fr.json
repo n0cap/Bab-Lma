@@ -95,6 +95,19 @@
     "statusCompleted": "Terminée",
     "statusCancelled": "Annulée"
   },
+  "chat": {
+    "title": "Chat",
+    "back": "Retour",
+    "placeholder": "Message...",
+    "typing": "En train d'écrire...",
+    "negotiate": "Négocier",
+    "propose": "Proposer",
+    "accept": "Accepter",
+    "pendingOffer": "Offre reçue",
+    "sendOffer": "Envoyer une offre",
+    "connectionLost": "Connexion perdue",
+    "reconnecting": "Reconnexion..."
+  },
   "nav": {
     "home": "Accueil",
     "orders": "Commandes",
