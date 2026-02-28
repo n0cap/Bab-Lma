@@ -12,3 +12,8 @@ export const messageSchema = z.object({
 export const pollSchema = z.object({
   sinceSeq: z.coerce.number().int().min(0).default(0),
 });
+
+export const offerIdParam = z.object({
+  id: z.string().uuid(),
+  offerId: z.string().uuid(),
+});

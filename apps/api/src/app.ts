@@ -9,6 +9,7 @@ import { authRouter } from './routes/auth.routes';
 import { userRouter } from './routes/user.routes';
 import { pricingRouter } from './routes/pricing.routes';
 import { orderRouter } from './routes/order.routes';
+import { negotiationRouter } from './routes/negotiation.routes';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/v1/auth', authRouter);
 app.use('/v1/users', userRouter);
 app.use('/v1/pricing', pricingRouter);
 app.use('/v1/orders', orderRouter);
+app.use('/v1/orders/:id', negotiationRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
