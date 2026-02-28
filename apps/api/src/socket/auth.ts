@@ -1,5 +1,14 @@
 import type { Socket } from 'socket.io';
 import { verifyAccessToken, type JwtPayload } from '../utils/jwt';
+import { AppError } from '../middleware/error.handler';
+
+const GENERIC_ERROR = 'Erreur interne';
+
+/** Return user-safe message: AppError messages are intentional, everything else is generic. */
+function safeMessage(err: unknown): string {
+  if (err instanceof AppError) return err.message;
+  return GENERIC_ERROR;
+}
 
 /**
  * Socket.IO connection middleware: verify JWT from handshake auth.
@@ -38,14 +47,14 @@ export function withAuth(
     try {
       const result = handler(payload);
       if (result && typeof result.catch === 'function') {
-        result.catch((err: any) => {
-          console.error('[socket] unhandled handler error:', err?.message ?? err);
-          socket.emit('error', { message: err?.message ?? 'Erreur interne' });
+        result.catch((err: unknown) => {
+          console.error('[socket] unhandled handler error:', err);
+          socket.emit('error', { message: safeMessage(err) });
         });
       }
-    } catch (err: any) {
-      console.error('[socket] sync handler error:', err?.message ?? err);
-      socket.emit('error', { message: err?.message ?? 'Erreur interne' });
+    } catch (err: unknown) {
+      console.error('[socket] sync handler error:', err);
+      socket.emit('error', { message: safeMessage(err) });
     }
   };
 }
