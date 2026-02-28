@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { BookingStackParamList } from '../../navigation/BookingStack';
 import { useCreateOrder } from '../../services/mutations/orders';
@@ -38,13 +38,8 @@ export function OrderConfirmScreen() {
       },
       {
         onSuccess: () => {
-          // Navigate back to orders list tab
-          nav.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs', params: { screen: 'OrdersTab' } }],
-            }),
-          );
+          // Pop the booking stack back to home, user can go to Orders tab
+          nav.getParent()?.navigate('OrdersTab');
         },
         onError: (err: any) => {
           Alert.alert(

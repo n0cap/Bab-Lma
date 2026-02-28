@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { HomeScreen } from '../screens/home/HomeScreen';
-import { OrdersListScreen } from '../screens/orders/OrdersListScreen';
+import { HomeStack } from './HomeStack';
+import { OrdersStack } from './OrdersStack';
 import { ProfileScreen } from '../screens/settings/ProfileScreen';
 import { colors } from '../theme';
 
@@ -33,12 +33,12 @@ export function MainTabs() {
     >
       <Tab.Screen
         name="HomeTab"
-        component={HomeScreen}
+        component={HomeStack}
         options={{ tabBarLabel: 'Accueil' }}
       />
       <Tab.Screen
         name="OrdersTab"
-        component={OrdersListScreen}
+        component={OrdersStack}
         options={{ tabBarLabel: 'Commandes' }}
       />
       <Tab.Screen
