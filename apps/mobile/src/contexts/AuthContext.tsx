@@ -35,7 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
   });
 
+  // Refs to avoid stale closures in interceptors
+  const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    accessTokenRef.current = state.accessToken;
+  }, [state.accessToken]);
 
   const fetchUser = useCallback(async (token: string): Promise<User | null> => {
     try {
@@ -63,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Mutex-guarded refresh — single in-flight promise
   const refreshWithMutex = useCallback(async (): Promise<string | null> => {
     if (refreshPromiseRef.current) {
       return refreshPromiseRef.current;
@@ -76,11 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [doRefresh]);
 
-  // Axios interceptor: attach token + handle 401
+  // Register interceptors ONCE on mount — read token from ref to avoid stale closures
   useEffect(() => {
     const requestInterceptor = api.interceptors.request.use((config) => {
-      if (state.accessToken) {
-        config.headers.Authorization = `Bearer ${state.accessToken}`;
+      const token = accessTokenRef.current;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     });
@@ -97,10 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           original._retry = true;
           const newToken = await refreshWithMutex();
           if (newToken) {
+            accessTokenRef.current = newToken;
             setState((prev) => ({ ...prev, accessToken: newToken }));
             original.headers.Authorization = `Bearer ${newToken}`;
             return api(original);
           }
+          // Refresh failed — sign out
+          accessTokenRef.current = null;
           setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
           await clearRefreshToken();
         }
@@ -112,13 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.interceptors.request.eject(requestInterceptor);
       api.interceptors.response.eject(responseInterceptor);
     };
-  }, [state.accessToken, refreshWithMutex]);
+  }, [refreshWithMutex]);
 
   // Bootstrap: try refresh on mount
   useEffect(() => {
     (async () => {
       const token = await refreshWithMutex();
       if (token) {
+        accessTokenRef.current = token;
         const user = await fetchUser(token);
         if (user) {
           setState({ user, accessToken: token, isAuthenticated: true, isLoading: false });
@@ -132,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async (tokens: { accessToken: string; refreshToken: string }) => {
       await storeRefreshToken(tokens.refreshToken);
+      accessTokenRef.current = tokens.accessToken;
       const user = await fetchUser(tokens.accessToken);
       setState({
         user,
@@ -144,11 +158,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Send refresh token to server so it can revoke the correct family
+    const storedRefresh = await getStoredRefreshToken();
     try {
-      await api.post('/auth/logout');
+      await api.post('/auth/logout', {
+        ...(storedRefresh ? { refreshToken: storedRefresh } : {}),
+      });
     } catch {
       // Best-effort server logout
     }
+    accessTokenRef.current = null;
     await clearRefreshToken();
     setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
   }, []);
