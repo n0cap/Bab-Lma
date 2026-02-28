@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { createOrderSchema, cancelOrderSchema, paginationSchema, uuidParam } from '@babloo/shared';
+import { createOrderSchema, cancelOrderSchema, updateStatusSchema, ratingSchema, paginationSchema, uuidParam } from '@babloo/shared';
 import { validate } from '../middleware/validate';
 import * as orderService from '../services/order.service';
 
@@ -53,5 +53,37 @@ orderRouter.post(
     const body = cancelOrderSchema.parse(req.body ?? {});
     const order = await orderService.cancel(req.user!.userId, id, body.reason);
     res.json({ data: order });
+  }),
+);
+
+// PATCH /v1/orders/:id/status — pro updates status
+orderRouter.patch(
+  '/:id/status',
+  validate(updateStatusSchema),
+  asyncHandler(async (req, res) => {
+    const { id } = uuidParam.parse(req.params);
+    const order = await orderService.updateStatus(
+      req.user!.userId,
+      id,
+      req.body.toStatus,
+      req.body.reason,
+    );
+    res.json({ data: order });
+  }),
+);
+
+// POST /v1/orders/:id/rating — client rates completed order
+orderRouter.post(
+  '/:id/rating',
+  validate(ratingSchema),
+  asyncHandler(async (req, res) => {
+    const { id } = uuidParam.parse(req.params);
+    const rating = await orderService.submitRating(
+      req.user!.userId,
+      id,
+      req.body.stars,
+      req.body.comment,
+    );
+    res.status(201).json({ data: rating });
   }),
 );

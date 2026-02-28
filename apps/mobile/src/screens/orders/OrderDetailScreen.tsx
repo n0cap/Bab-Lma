@@ -193,6 +193,33 @@ export function OrderDetailScreen() {
         </View>
       )}
 
+      {/* Rating card (when rated) */}
+      {order.rating && (
+        <View style={styles.section}>
+          <Text style={[textStyles.h3, { color: colors.navy, marginBottom: spacing.sm }]}>Votre évaluation</Text>
+          <View style={styles.ratingStars}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Text key={n} style={{ fontSize: 20, color: n <= order.rating.stars ? colors.warning : colors.border }}>★</Text>
+            ))}
+          </View>
+          {order.rating.comment ? (
+            <Text style={[textStyles.body, { color: colors.textSec, fontStyle: 'italic', marginTop: spacing.sm }]}>
+              {order.rating.comment}
+            </Text>
+          ) : null}
+        </View>
+      )}
+
+      {/* Rate CTA (completed + not yet rated) */}
+      {order.status === 'completed' && !order.rating && (
+        <TouchableOpacity
+          style={styles.rateBtn}
+          onPress={() => nav.navigate('Rating', { orderId })}
+        >
+          <Text style={styles.rateBtnText}>★ Évaluer</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Negotiate button (only during negotiating status) */}
       {order.status === 'negotiating' && (
         <TouchableOpacity
@@ -322,6 +349,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   negotiateBtnText: {
+    color: colors.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 15,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  rateBtn: {
+    backgroundColor: colors.warning,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  rateBtnText: {
     color: colors.white,
     fontFamily: 'DMSans_700Bold',
     fontSize: 15,

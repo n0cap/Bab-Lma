@@ -58,6 +58,20 @@ export function useCancelOrder() {
   });
 }
 
+export function useSubmitRating() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, stars, comment }: { orderId: string; stars: number; comment?: string }) => {
+      const res = await api.post(`/orders/${orderId}/rating`, { stars, comment });
+      return res.data.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['orders', variables.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
 export function usePricingEstimate() {
   return useMutation({
     mutationFn: async (params: Record<string, unknown>) => {

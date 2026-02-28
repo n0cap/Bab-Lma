@@ -170,6 +170,7 @@ export async function getById(userId: string, orderId: string) {
     include: {
       detail: true,
       statusEvents: { orderBy: { seq: 'asc' } },
+      rating: true,
     },
   });
 
@@ -212,6 +213,110 @@ export async function cancel(userId: string, orderId: string, reason?: string) {
     });
 
     return cancelled;
+  });
+
+  return updated;
+}
+
+// ── submitRating ────────────────────────────────────────
+
+export async function submitRating(
+  userId: string,
+  orderId: string,
+  stars: number,
+  comment?: string,
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { rating: true, assignments: true },
+  });
+
+  if (!order || order.clientId !== userId) {
+    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+  }
+
+  if (order.status !== 'completed') {
+    throw new AppError(409, 'INVALID_STATE', 'Seules les commandes terminées peuvent être évaluées');
+  }
+
+  if (order.rating) {
+    throw new AppError(409, 'ALREADY_RATED', 'Cette commande a déjà été évaluée');
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create rating
+    const rating = await tx.rating.create({
+      data: {
+        orderId,
+        clientId: userId,
+        stars,
+        comment: comment?.trim() || null,
+      },
+    });
+
+    // 2. Update professional stats (weighted average rating + totalSessions)
+    for (const assignment of order.assignments) {
+      const pro = await tx.professional.findUnique({
+        where: { id: assignment.professionalId },
+      });
+      if (pro) {
+        const newTotal = pro.totalSessions + 1;
+        const newRating = (pro.rating * pro.totalSessions + stars) / newTotal;
+        await tx.professional.update({
+          where: { id: pro.id },
+          data: {
+            rating: Math.round(newRating * 100) / 100,
+            totalSessions: newTotal,
+          },
+        });
+      }
+    }
+
+    return rating;
+  });
+
+  return result;
+}
+
+// ── updateStatus (pro) ──────────────────────────────────
+
+export async function updateStatus(
+  userId: string,
+  orderId: string,
+  toStatus: string,
+  reason?: string,
+) {
+  // Import checkParticipant lazily to avoid circular deps
+  const { checkParticipant } = await import('../services/negotiation.service');
+  const { order, participantRole } = await checkParticipant(userId, orderId);
+
+  if (participantRole !== 'pro') {
+    throw new AppError(403, 'FORBIDDEN', 'Seul le professionnel peut mettre à jour le statut');
+  }
+
+  if (!isValidTransition(order.status as any, toStatus as any)) {
+    throw new AppError(409, 'INVALID_TRANSITION', 'Transition de statut invalide');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedOrder = await tx.order.update({
+      where: { id: orderId },
+      data: { status: toStatus as any },
+      include: { detail: true },
+    });
+
+    await tx.statusEvent.create({
+      data: {
+        orderId,
+        fromStatus: order.status,
+        toStatus: toStatus as any,
+        actorUserId: userId,
+        actorRole: participantRole,
+        reason: reason ?? null,
+      },
+    });
+
+    return updatedOrder;
   });
 
   return updated;
