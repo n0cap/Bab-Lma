@@ -1,2 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.expo/
+*.tsbuildinfo
+.turbo/
+coverage/
+*.log
+.DS_Store
 .worktrees/
 .DS_Store
