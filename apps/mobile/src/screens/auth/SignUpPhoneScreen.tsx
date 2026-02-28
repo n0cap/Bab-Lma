@@ -18,7 +18,7 @@ export function SignUpPhoneScreen() {
     if (!fullName || !phone) return;
     try {
       const { challengeId } = await otpRequest.mutateAsync({ phone, purpose: 'signup' });
-      nav.navigate('Otp', { challengeId, phone });
+      nav.navigate('Otp', { challengeId, phone, fullName });
     } catch {
       Alert.alert('Erreur', 'Impossible d\'envoyer le code. Vérifiez le numéro.');
     }

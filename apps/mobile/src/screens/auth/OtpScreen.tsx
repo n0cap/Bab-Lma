@@ -23,7 +23,11 @@ export function OtpScreen() {
   const handleVerify = async () => {
     if (code.length !== 6) return;
     try {
-      const tokens = await otpVerify.mutateAsync({ challengeId, code });
+      const tokens = await otpVerify.mutateAsync({
+        challengeId,
+        code,
+        ...(route.params.fullName ? { fullName: route.params.fullName } : {}),
+      });
       await signIn(tokens);
     } catch {
       Alert.alert('Erreur', 'Code invalide ou expiré');

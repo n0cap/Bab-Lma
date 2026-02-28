@@ -38,7 +38,7 @@ authRouter.post('/otp/request', validate(otpRequestSchema), asyncHandler(async (
 }));
 
 authRouter.post('/otp/verify', validate(otpVerifySchema), asyncHandler(async (req, res) => {
-  const tokens = await authService.otpVerify(req.body.challengeId, req.body.code);
+  const tokens = await authService.otpVerify(req.body.challengeId, req.body.code, req.body.fullName);
   res.json({ data: tokens });
 }));
 

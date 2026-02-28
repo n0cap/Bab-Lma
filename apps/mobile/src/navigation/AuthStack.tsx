@@ -14,7 +14,7 @@ export type AuthStackParamList = {
   SignInPhone: undefined;
   SignUpEmail: undefined;
   SignUpPhone: undefined;
-  Otp: { challengeId: string; phone: string };
+  Otp: { challengeId: string; phone: string; fullName?: string };
   ForgotPassword: undefined;
 };
 

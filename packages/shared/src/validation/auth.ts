@@ -27,6 +27,7 @@ export const otpRequestSchema = z.object({
 export const otpVerifySchema = z.object({
   challengeId: z.string().uuid(),
   code: z.string().length(6).regex(/^\d{6}$/),
+  fullName: z.string().min(1).max(100).trim().optional(),
 });
 
 export const refreshSchema = z.object({

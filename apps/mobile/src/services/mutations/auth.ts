@@ -22,6 +22,7 @@ interface OtpRequestInput {
 interface OtpVerifyInput {
   challengeId: string;
   code: string;
+  fullName?: string;
 }
 
 export function useSignup() {
