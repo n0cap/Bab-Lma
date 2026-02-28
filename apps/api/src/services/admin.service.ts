@@ -1,5 +1,6 @@
 import { prisma } from '../db';
 import { AppError } from '../middleware/error.handler';
+import { ADMIN } from '../constants/errors';
 
 // ── Order status override ───────────────────────────────
 
@@ -11,7 +12,7 @@ export async function overrideOrderStatus(
 ) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', ADMIN.ORDER_NOT_FOUND);
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -59,7 +60,7 @@ export async function overrideOrderPrice(
 ) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', ADMIN.ORDER_NOT_FOUND);
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -95,7 +96,7 @@ export async function toggleUserActive(
 ) {
   const user = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!user) {
-    throw new AppError(404, 'NOT_FOUND', 'Utilisateur non trouvé');
+    throw new AppError(404, 'NOT_FOUND', ADMIN.USER_NOT_FOUND);
   }
 
   const updated = await prisma.$transaction(async (tx) => {

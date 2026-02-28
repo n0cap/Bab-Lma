@@ -1,6 +1,7 @@
 import { prisma } from '../db';
 import { isValidTransition } from '@babloo/shared';
 import { AppError } from '../middleware/error.handler';
+import { NEGOTIATION } from '../constants/errors';
 
 // ── Constants ──────────────────────────────────────────────
 const CEILING_MULTIPLIER = 2.5;
@@ -19,7 +20,7 @@ export async function checkParticipant(userId: string, orderId: string) {
   });
 
   if (!order) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', NEGOTIATION.NOT_FOUND);
   }
 
   // Check if user is the client
@@ -35,7 +36,7 @@ export async function checkParticipant(userId: string, orderId: string) {
     return { order, participantRole: 'pro' as const };
   }
 
-  throw new AppError(403, 'FORBIDDEN', 'Accès non autorisé à cette commande');
+  throw new AppError(403, 'FORBIDDEN', NEGOTIATION.FORBIDDEN);
 }
 
 // ── Messages ───────────────────────────────────────────────
@@ -103,7 +104,7 @@ export async function createOffer(
 ) {
   // Validate order is in negotiating state
   if (order.status !== 'negotiating') {
-    throw new AppError(409, 'INVALID_STATE', 'La commande n\'est pas en négociation');
+    throw new AppError(409, 'INVALID_STATE', NEGOTIATION.NOT_NEGOTIATING);
   }
 
   const floor = order.floorPrice;
@@ -111,12 +112,12 @@ export async function createOffer(
 
   // Validate amount bounds
   if (amount < floor || amount > ceiling) {
-    throw new AppError(400, 'VALIDATION_ERROR', `Montant hors limites (${floor}–${ceiling} MAD)`);
+    throw new AppError(400, 'VALIDATION_ERROR', NEGOTIATION.AMOUNT_OUT_OF_RANGE(floor, ceiling));
   }
 
   // Validate step
   if (amount % OFFER_STEP !== 0) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'Montant doit être un multiple de 5');
+    throw new AppError(400, 'VALIDATION_ERROR', NEGOTIATION.AMOUNT_NOT_MULTIPLE);
   }
 
   // Auto-reject previous pending offers by this user
@@ -147,7 +148,7 @@ export async function acceptOffer(
 ) {
   // Validate order is in negotiating state
   if (order.status !== 'negotiating') {
-    throw new AppError(409, 'INVALID_STATE', 'La commande n\'est pas en négociation');
+    throw new AppError(409, 'INVALID_STATE', NEGOTIATION.NOT_NEGOTIATING);
   }
 
   // Pre-flight check (non-atomic, for fast-fail with clear errors)
@@ -156,16 +157,16 @@ export async function acceptOffer(
   });
 
   if (!offer || offer.orderId !== orderId) {
-    throw new AppError(404, 'NOT_FOUND', 'Offre non trouvée');
+    throw new AppError(404, 'NOT_FOUND', NEGOTIATION.OFFER_NOT_FOUND);
   }
 
   if (offer.status !== 'pending') {
-    throw new AppError(409, 'INVALID_STATE', 'Cette offre n\'est plus en attente');
+    throw new AppError(409, 'INVALID_STATE', NEGOTIATION.OFFER_NOT_PENDING);
   }
 
   // Can't accept own offer
   if (offer.offeredBy === userId) {
-    throw new AppError(403, 'FORBIDDEN', 'Vous ne pouvez pas accepter votre propre offre');
+    throw new AppError(403, 'FORBIDDEN', NEGOTIATION.CANNOT_ACCEPT_OWN);
   }
 
   // Atomic price lock transaction with guarded update
@@ -177,7 +178,7 @@ export async function acceptOffer(
     });
 
     if (count === 0) {
-      throw new AppError(409, 'INVALID_STATE', 'Cette offre n\'est plus en attente');
+      throw new AppError(409, 'INVALID_STATE', NEGOTIATION.OFFER_NOT_PENDING);
     }
 
     // Re-fetch the accepted offer for return value

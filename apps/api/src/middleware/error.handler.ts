@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { COMMON } from '../constants/errors';
 
 export class AppError extends Error {
   constructor(
@@ -31,13 +32,13 @@ export function errorHandler(
       fields[issue.path.join('.')] = issue.message;
     }
     res.status(400).json({
-      error: { code: 'VALIDATION_ERROR', message: 'Données invalides', fields },
+      error: { code: 'VALIDATION_ERROR', message: COMMON.VALIDATION_ERROR, fields },
     });
     return;
   }
 
   console.error('[unhandled]', err);
   res.status(500).json({
-    error: { code: 'INTERNAL_ERROR', message: 'Erreur interne du serveur' },
+    error: { code: 'INTERNAL_ERROR', message: COMMON.INTERNAL_ERROR },
   });
 }

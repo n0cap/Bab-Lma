@@ -3,6 +3,7 @@ import { computePrice, isValidTransition, ServiceType } from '@babloo/shared';
 import type { PricingParams } from '@babloo/shared';
 import type { CleanType, TeamType } from '@prisma/client';
 import { AppError } from '../middleware/error.handler';
+import { ORDER } from '../constants/errors';
 
 // ── types ────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ function extractPricingParams(serviceType: string, detail: Record<string, unknow
         hours: detail.hours as number,
       } as PricingParams;
     default:
-      throw new AppError(400, 'VALIDATION_ERROR', `Type de service inconnu: ${serviceType}`);
+      throw new AppError(400, 'VALIDATION_ERROR', ORDER.UNKNOWN_SERVICE(serviceType));
   }
 }
 
@@ -64,7 +65,7 @@ function buildDetailData(serviceType: string, detail: Record<string, unknown>) {
         notes: (detail.notes as string) ?? null,
       };
     default:
-      throw new AppError(400, 'VALIDATION_ERROR', `Type de service inconnu: ${serviceType}`);
+      throw new AppError(400, 'VALIDATION_ERROR', ORDER.UNKNOWN_SERVICE(serviceType));
   }
 }
 
@@ -175,7 +176,7 @@ export async function getById(userId: string, orderId: string) {
   });
 
   if (!order || order.clientId !== userId) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', ORDER.NOT_FOUND);
   }
 
   return order;
@@ -187,11 +188,11 @@ export async function cancel(userId: string, orderId: string, reason?: string) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
 
   if (!order || order.clientId !== userId) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', ORDER.NOT_FOUND);
   }
 
   if (!isValidTransition(order.status as any, 'cancelled' as any)) {
-    throw new AppError(409, 'INVALID_TRANSITION', 'Cette commande ne peut pas être annulée');
+    throw new AppError(409, 'INVALID_TRANSITION', ORDER.CANNOT_CANCEL);
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -232,15 +233,15 @@ export async function submitRating(
   });
 
   if (!order || order.clientId !== userId) {
-    throw new AppError(404, 'NOT_FOUND', 'Commande non trouvée');
+    throw new AppError(404, 'NOT_FOUND', ORDER.NOT_FOUND);
   }
 
   if (order.status !== 'completed') {
-    throw new AppError(409, 'INVALID_STATE', 'Seules les commandes terminées peuvent être évaluées');
+    throw new AppError(409, 'INVALID_STATE', ORDER.NOT_COMPLETED);
   }
 
   if (order.rating) {
-    throw new AppError(409, 'ALREADY_RATED', 'Cette commande a déjà été évaluée');
+    throw new AppError(409, 'ALREADY_RATED', ORDER.ALREADY_RATED);
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -291,11 +292,11 @@ export async function updateStatus(
   const { order, participantRole } = await checkParticipant(userId, orderId);
 
   if (participantRole !== 'pro') {
-    throw new AppError(403, 'FORBIDDEN', 'Seul le professionnel peut mettre à jour le statut');
+    throw new AppError(403, 'FORBIDDEN', ORDER.PRO_ONLY_STATUS);
   }
 
   if (!isValidTransition(order.status as any, toStatus as any)) {
-    throw new AppError(409, 'INVALID_TRANSITION', 'Transition de statut invalide');
+    throw new AppError(409, 'INVALID_TRANSITION', ORDER.INVALID_TRANSITION);
   }
 
   const updated = await prisma.$transaction(async (tx) => {

@@ -5,6 +5,7 @@ import { config } from '../config';
 import { signAccessToken, generateRefreshToken, hashToken } from '../utils/jwt';
 import { AppError } from '../middleware/error.handler';
 import { normalizePhone } from '@babloo/shared';
+import { AUTH } from '../constants/errors';
 
 interface TokenPair {
   accessToken: string;
@@ -40,11 +41,11 @@ export async function signup(input: {
 
   if (input.email) {
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
-    if (existing) throw new AppError(409, 'DUPLICATE', 'Un compte avec cet email existe déjà');
+    if (existing) throw new AppError(409, 'DUPLICATE', AUTH.DUPLICATE_EMAIL);
   }
   if (phone) {
     const existing = await prisma.user.findUnique({ where: { phone } });
-    if (existing) throw new AppError(409, 'DUPLICATE', 'Un compte avec ce numéro existe déjà');
+    if (existing) throw new AppError(409, 'DUPLICATE', AUTH.DUPLICATE_PHONE);
   }
 
   const passwordHash = input.password
@@ -69,11 +70,11 @@ export async function signup(input: {
 export async function login(email: string, password: string): Promise<TokenPair> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.passwordHash || !user.isActive) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
   const family = generateFamily();
   const accessToken = issueAccessToken(user);
@@ -90,7 +91,7 @@ export async function otpRequest(phone: string, purpose: string): Promise<{ chal
     where: { phone: normalized, createdAt: { gte: fifteenMinAgo } },
   });
   if (recentCount >= config.otp.rateLimitPer15Min) {
-    throw new AppError(429, 'OTP_RATE_LIMIT', 'Trop de demandes. Réessayez dans quelques minutes.');
+    throw new AppError(429, 'OTP_RATE_LIMIT', AUTH.OTP_RATE_LIMIT);
   }
 
   const code = config.isDev
@@ -129,7 +130,7 @@ export async function otpVerify(
   });
 
   if (count === 0) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   // Re-fetch to get codeHash and phone (updateMany doesn't return the row)
@@ -138,12 +139,12 @@ export async function otpVerify(
   });
 
   if (!challenge) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   const valid = await bcrypt.compare(code, challenge.codeHash);
   if (!valid) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   await prisma.otpChallenge.update({
@@ -162,7 +163,7 @@ export async function otpVerify(
   }
 
   if (!user.isActive) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   const family = generateFamily();
@@ -179,7 +180,7 @@ export async function refresh(rawRefreshToken: string): Promise<TokenPair> {
   });
 
   if (!token) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   if (token.isRevoked) {
@@ -187,15 +188,15 @@ export async function refresh(rawRefreshToken: string): Promise<TokenPair> {
       where: { family: token.family },
       data: { isRevoked: true },
     });
-    throw new AppError(401, 'TOKEN_REUSE', 'Identifiants invalides');
+    throw new AppError(401, 'TOKEN_REUSE', AUTH.INVALID_CREDENTIALS);
   }
 
   if (token.expiresAt < new Date()) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   if (!token.user.isActive) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
+    throw new AppError(401, 'INVALID_CREDENTIALS', AUTH.INVALID_CREDENTIALS);
   }
 
   const newRaw = generateRefreshToken();
