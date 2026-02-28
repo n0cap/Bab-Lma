@@ -108,10 +108,24 @@ export function OrderDetailScreen() {
 
       {/* Price */}
       <View style={styles.priceBox}>
-        <Text style={[textStyles.h3, { color: colors.navy }]}>Prix plancher</Text>
-        <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
-          {order.floorPrice} MAD
-        </Text>
+        {order.finalPrice != null ? (
+          <>
+            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix final</Text>
+            <Text style={[textStyles.h2, { color: colors.success, marginTop: 4 }]}>
+              {order.finalPrice} MAD
+            </Text>
+            <Text style={[textStyles.body, { color: colors.textMuted, fontSize: 12, marginTop: 2 }]}>
+              Prix plancher : {order.floorPrice} MAD
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix plancher</Text>
+            <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
+              {order.floorPrice} MAD
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Details */}

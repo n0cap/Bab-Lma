@@ -34,6 +34,7 @@ interface OrderItem {
   serviceType: string;
   status: string;
   floorPrice: number;
+  finalPrice?: number | null;
   createdAt: string;
 }
 
@@ -72,9 +73,15 @@ export function OrdersListScreen() {
           </View>
         </View>
         <View style={styles.cardFooter}>
-          <Text style={[textStyles.body, { color: colors.clay }]}>
-            {item.floorPrice} MAD
-          </Text>
+          {item.finalPrice != null ? (
+            <Text style={[textStyles.body, { color: colors.success, fontFamily: 'DMSans_600SemiBold' }]}>
+              {item.finalPrice} MAD
+            </Text>
+          ) : (
+            <Text style={[textStyles.body, { color: colors.clay }]}>
+              {item.floorPrice} MAD
+            </Text>
+          )}
           <Text style={[textStyles.body, { color: colors.textMuted }]}>{date}</Text>
         </View>
       </TouchableOpacity>
