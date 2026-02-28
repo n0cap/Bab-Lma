@@ -11,6 +11,7 @@
   "dependencies": {
     "@babloo/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "^3.0.1",
+    "@react-native-community/slider": "^5.1.2",
     "@react-navigation/bottom-tabs": "^7.15.2",
     "@react-navigation/native": "^7.1.31",
     "@react-navigation/native-stack": "^7.14.2",

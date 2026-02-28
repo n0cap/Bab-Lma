@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { SocketProvider } from './src/contexts/SocketContext';
 import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -45,8 +46,10 @@ export default function App() {
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <StatusBar barStyle="dark-content" />
-          <RootNavigator />
+          <SocketProvider>
+            <StatusBar barStyle="dark-content" />
+            <RootNavigator />
+          </SocketProvider>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
