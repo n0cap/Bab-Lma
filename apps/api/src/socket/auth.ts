@@ -24,7 +24,7 @@ export function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void
 
 /**
  * Per-event auth guard. Wraps a handler so it checks socket.data.userId
- * before executing. Socket is captured by closure via registerHandlers.
+ * before executing. Awaits async handlers and catches unhandled rejections.
  */
 export function withAuth(
   socket: Socket,
@@ -35,7 +35,18 @@ export function withAuth(
       socket.emit('auth:expired', { message: 'Veuillez vous reconnecter' });
       return;
     }
-    handler(payload);
+    try {
+      const result = handler(payload);
+      if (result && typeof result.catch === 'function') {
+        result.catch((err: any) => {
+          console.error('[socket] unhandled handler error:', err?.message ?? err);
+          socket.emit('error', { message: err?.message ?? 'Erreur interne' });
+        });
+      }
+    } catch (err: any) {
+      console.error('[socket] sync handler error:', err?.message ?? err);
+      socket.emit('error', { message: err?.message ?? 'Erreur interne' });
+    }
   };
 }
 
