@@ -9,8 +9,8 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install all deps needed for build (including devDependencies for tsc/test type imports)
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy source
 COPY packages/shared/ packages/shared/
