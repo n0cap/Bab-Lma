@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const PROD_SOCKET_URL = 'https://babloo-api.up.railway.app';
+const PROD_SOCKET_URL = 'https://bab-lma-production.up.railway.app';
 
 // Configure with EXPO_PUBLIC_SOCKET_URL for real devices/simulators.
 const SOCKET_URL =

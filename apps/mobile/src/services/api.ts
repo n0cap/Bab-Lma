@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as Crypto from 'expo-crypto';
 
-const PROD_API_BASE_URL = 'https://babloo-api.up.railway.app/v1';
+const PROD_API_BASE_URL = 'https://bab-lma-production.up.railway.app/v1';
 
 // Configure with EXPO_PUBLIC_API_BASE_URL for real devices/simulators.
 const API_BASE_URL =
