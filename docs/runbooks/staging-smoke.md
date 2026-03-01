@@ -40,10 +40,8 @@ For manual apply:
 railway run pnpm --filter @babloo/api db:migrate:deploy
 ```
 
-> **Note:** The project currently uses `prisma db push` for development. If
-> no migrations directory exists yet, the Dockerfile CMD will fail. In that
-> case, generate the initial migration locally first:
-> `pnpm --filter @babloo/api exec prisma migrate dev --name init`
+> The initial migration now lives in
+> `apps/api/prisma/migrations/20260301_init`.
 
 ---
 
@@ -73,11 +71,11 @@ SIGNUP=$(curl -sf -X POST "$API/v1/auth/signup" \
   -d '{"email":"smoke@test.local","password":"Test1234!","fullName":"Smoke Test"}')
 echo "$SIGNUP" | jq .
 
-ACCESS=$(echo "$SIGNUP" | jq -r '.accessToken')
-REFRESH=$(echo "$SIGNUP" | jq -r '.refreshToken')
+ACCESS=$(echo "$SIGNUP" | jq -r '.data.accessToken')
+REFRESH=$(echo "$SIGNUP" | jq -r '.data.refreshToken')
 ```
 
-**Expected:** 201 with `accessToken` and `refreshToken` in response body.
+**Expected:** 201 with `data.accessToken` and `data.refreshToken`.
 
 ---
 
@@ -88,7 +86,7 @@ curl -sf "$API/v1/users/me" \
   -H "Authorization: Bearer $ACCESS" | jq .
 ```
 
-**Expected:** 200 with user object containing `id`, `email`, `fullName`, `role`.
+**Expected:** 200 with `data` user object containing `id`, `email`, `fullName`, `role`.
 
 ---
 
@@ -109,10 +107,10 @@ curl -sf -X POST "$API/v1/auth/refresh" \
 ```bash
 curl -sf -X POST "$API/v1/pricing/estimate" \
   -H "Content-Type: application/json" \
-  -d '{"serviceType":"menage","surfaceM2":80,"cleanType":"standard"}' | jq .
+  -d '{"serviceType":"menage","surface":80,"cleanType":"simple","teamType":"solo"}' | jq .
 ```
 
-**Expected:** 200 with `floorPrice`, `ceilingPrice`, `currency: "MAD"`.
+**Expected:** 200 with `data.floorPrice`, `data.ceiling`, `data.durationMinutes`.
 
 ---
 
@@ -125,32 +123,60 @@ ORDER=$(curl -sf -X POST "$API/v1/orders" \
   -H "Idempotency-Key: smoke-$(date +%s)" \
   -d '{
     "serviceType": "menage",
-    "surfaceM2": 80,
-    "cleanType": "standard",
-    "location": {"address": "1 Rue Smoke, Casablanca", "lat": 33.57, "lng": -7.59}
+    "location": "1 Rue Smoke, Casablanca",
+    "detail": {
+      "serviceType": "menage",
+      "surface": 80,
+      "cleanType": "simple",
+      "teamType": "solo"
+    }
   }')
 echo "$ORDER" | jq .
-ORDER_ID=$(echo "$ORDER" | jq -r '.id')
+ORDER_ID=$(echo "$ORDER" | jq -r '.data.id')
 ```
 
-**Expected:** 201 with order in `submitted` status and computed `floorPrice`.
+**Expected:** 201 with `data.status = submitted` and computed `data.floorPrice`.
 
 ---
 
 ## 7. WebSocket Connectivity
 
 ```bash
-# Quick test: connect and expect a successful upgrade.
-# Requires wscat: npm i -g wscat
-wscat -c "wss://$(echo $API | sed 's|https://||')/socket.io/?EIO=4&transport=websocket" \
-  --header "Authorization: Bearer $ACCESS" \
-  --execute '0' \
-  --wait 3
+# Requires repository dependencies installed (socket.io-client available).
+node - <<'EOF'
+const { io } = require('socket.io-client');
+const api = process.env.API;
+const token = process.env.ACCESS;
+const orderId = process.env.ORDER_ID;
+
+const socket = io(api, {
+  transports: ['websocket'],
+  auth: { token },
+  timeout: 8000,
+});
+
+socket.on('connect', () => {
+  console.log('connected', socket.id);
+  socket.emit('join:order', { orderId });
+  setTimeout(() => {
+    socket.disconnect();
+    process.exit(0);
+  }, 1000);
+});
+
+socket.on('order:joined', (payload) => {
+  console.log('order:joined', payload);
+});
+
+socket.on('connect_error', (err) => {
+  console.error('connect_error', err.message);
+  process.exit(1);
+});
+EOF
 ```
 
-**Expected:** Receives a `0{...}` (open) packet, then `40` (connect).
-If this times out, verify CORS_ORIGINS includes the staging domain and
-that WebSocket transport is not blocked by the Railway proxy.
+**Expected:** console prints `connected <socketId>` and `order:joined`.
+If this fails, verify `CORS_ORIGINS`, JWT secret, and Railway networking.
 
 ---
 
@@ -159,15 +185,8 @@ that WebSocket transport is not blocked by the Railway proxy.
 Delete the smoke test user from the staging database:
 
 ```bash
-# Via Railway CLI psql or Prisma Studio
+# Via Prisma Studio (delete order first, then user)
 railway run npx prisma studio
-# Delete user with email "smoke@test.local" and cascade
-```
-
-Or via SQL if you have direct DB access:
-
-```sql
-DELETE FROM "User" WHERE email = 'smoke@test.local';
 ```
 
 ---
@@ -180,9 +199,9 @@ DELETE FROM "User" WHERE email = 'smoke@test.local';
 | 2 | Signup | 201 + tokens |
 | 3 | GET /me | 200 + user obj |
 | 4 | Refresh | 200 + new tokens |
-| 5 | Pricing | 200 + MAD prices |
+| 5 | Pricing | 200 + `data.floorPrice` + `data.ceiling` |
 | 6 | Create order | 201 + submitted |
-| 7 | WebSocket | Open + connect packets |
+| 7 | WebSocket | `connected` + `order:joined` printed |
 
 **All 7 must pass** for the staging deploy to be considered healthy.
 
@@ -195,6 +214,6 @@ DELETE FROM "User" WHERE email = 'smoke@test.local';
 | Health returns 502/503 | Container not started | Check `railway logs`, verify Dockerfile CMD |
 | Health ok, signup 500 | Missing `DATABASE_URL` | Add var in Railway dashboard |
 | Signup ok, /me 401 | Wrong `JWT_SECRET` between deploys | Ensure same secret across redeploys |
-| Pricing returns 400 | Shared package not built | Rebuild: `pnpm --filter @babloo/shared build` |
+| Pricing returns 400 | Invalid request payload shape | Use schema-compatible payload from Step 5 |
 | WebSocket timeout | CORS or proxy issue | Set `CORS_ORIGINS` to include staging domain |
 | Order 500 | Migrations not applied | Run `railway run pnpm --filter @babloo/api db:migrate:deploy` |
