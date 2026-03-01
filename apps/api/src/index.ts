@@ -16,9 +16,9 @@ const io = new SocketServer(httpServer, {
 setupSocket(io);
 
 // Start server
-httpServer.listen(config.port, () => {
+httpServer.listen(config.port, '0.0.0.0', () => {
   console.log(
-    `[babloo-api] listening on :${config.port} (${config.nodeEnv})`,
+    `[babloo-api] listening on 0.0.0.0:${config.port} (${config.nodeEnv})`,
   );
 });
 
