@@ -21,6 +21,8 @@ RUN pnpm --filter @babloo/api db:generate
 
 # Build shared + api
 RUN pnpm --filter @babloo/shared build
+# Point shared main to compiled output (source entry is for tsx dev only)
+RUN node -e "const fs=require('fs'),p='packages/shared/package.json',j=JSON.parse(fs.readFileSync(p));j.main='./dist/index.js';fs.writeFileSync(p,JSON.stringify(j,null,2));"
 RUN pnpm --filter @babloo/api build
 
 EXPOSE 3000
