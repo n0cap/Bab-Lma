@@ -14,6 +14,11 @@ import { adminRouter } from './routes/admin.routes';
 
 const app = express();
 
+// Root health check — before all middleware so Railway/LB probes always get 200
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: config.cors.origins, credentials: true }));
