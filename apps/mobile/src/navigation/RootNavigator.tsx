@@ -3,11 +3,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
+import { ProMainTabs } from './ProMainTabs';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -19,7 +20,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainTabs /> : <AuthStack />}
+      {!isAuthenticated ? <AuthStack /> : user?.role === 'pro' ? <ProMainTabs /> : <MainTabs />}
     </NavigationContainer>
   );
 }

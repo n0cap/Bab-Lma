@@ -3,12 +3,14 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMe } from '../../services/queries/user';
 import { useUpdateProfile } from '../../services/mutations/user';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, textStyles, spacing } from '../../theme';
 
 export function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { data: user, isLoading } = useMe();
   const updateProfile = useUpdateProfile();
   const { signOut } = useAuth();
@@ -63,7 +65,10 @@ export function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView
+      style={[styles.container, { paddingTop: insets.top + spacing.lg }]}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
       <Text
         style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.xl }]}
         accessibilityRole="header"
@@ -135,7 +140,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
     paddingHorizontal: spacing.lg,
-    paddingTop: 80,
   },
   centered: {
     flex: 1,

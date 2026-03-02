@@ -88,6 +88,20 @@ async function main() {
     },
   });
 
+  // Admin user
+  await prisma.user.upsert({
+    where: { email: 'admin@babloo.test' },
+    update: {},
+    create: {
+      email: 'admin@babloo.test',
+      phone: '+212661000099',
+      passwordHash,
+      fullName: 'Admin Babloo',
+      role: 'admin',
+      locale: 'fr',
+    },
+  });
+
   // Create Professional profiles
   await prisma.professional.upsert({
     where: { userId: proUser1.id },
@@ -138,6 +152,7 @@ async function main() {
   console.log('Test accounts (password: password123):');
   console.log('  Clients: client1@babloo.test, client2@babloo.test, client3@babloo.test');
   console.log('  Pros: pro1@babloo.test, pro2@babloo.test, pro3@babloo.test');
+  console.log('  Admin: admin@babloo.test');
 }
 
 main()

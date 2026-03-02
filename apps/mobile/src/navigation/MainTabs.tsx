@@ -6,7 +6,7 @@ import type { HomeStackParamList } from './HomeStack';
 import { OrdersStack } from './OrdersStack';
 import type { OrdersStackParamList } from './OrdersStack';
 import { ProfileScreen } from '../screens/settings/ProfileScreen';
-import { colors } from '../theme';
+import { BottomTabBar } from '../components';
 
 export type MainTabsParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
@@ -19,18 +19,9 @@ const Tab = createBottomTabNavigator<MainTabsParamList>();
 export function MainTabs() {
   return (
     <Tab.Navigator
+      tabBar={(props) => <BottomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.navy,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-        },
-        tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: '700',
-        },
       }}
     >
       <Tab.Screen

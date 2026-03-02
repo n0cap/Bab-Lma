@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { BookingStackParamList } from '../../navigation/BookingStack';
 import { useCreateOrder } from '../../services/mutations/orders';
-import { colors, textStyles, spacing } from '../../theme';
+import { BackHeader, Button, Card, Chip, Input } from '../../components';
+import { ChatIcon, ChevronRightIcon } from '../../components';
+import { colors, radius, spacing, textStyles } from '../../theme';
 
 type Route = RouteProp<BookingStackParamList, 'OrderConfirm'>;
 
@@ -18,11 +26,43 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 export function OrderConfirmScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<any>();
   const route = useRoute<Route>();
   const { serviceType, detail, estimate } = route.params;
+  const detailData = detail as any;
   const createOrder = useCreateOrder();
   const [location, setLocation] = useState('');
+
+  const subtitle = useMemo(() => {
+    if (serviceType === 'menage') return `${detailData.cleanType === 'deep' ? 'Ménage profond' : 'Ménage simple'} · ${detailData.surface}m²`;
+    if (serviceType === 'cuisine') return `${detailData.guests} convives`;
+    return `${detailData.children} enfant${detailData.children > 1 ? 's' : ''} · ${detailData.hours}h`;
+  }, [detailData, serviceType]);
+
+  const rows = useMemo(() => {
+    if (serviceType === 'menage') {
+      return [
+        { label: 'Type', value: detail.cleanType === 'deep' ? 'Ménage profond' : 'Ménage simple' },
+        { label: 'Superficie', value: `${detailData.surface} m²` },
+        { label: 'Équipe', value: detailData.teamType === 'solo' ? 'Solo' : detailData.teamType === 'duo' ? 'Duo' : 'Squad' },
+        { label: 'Durée', value: `${estimate.durationMinutes.min}–${estimate.durationMinutes.max} min` },
+      ];
+    }
+    if (serviceType === 'cuisine') {
+      return [
+        { label: 'Type', value: 'Préparation culinaire' },
+        { label: 'Convives', value: `${detailData.guests}` },
+        { label: 'Équipe', value: 'Solo' },
+        { label: 'Durée', value: `${estimate.durationMinutes.min}–${estimate.durationMinutes.max} min` },
+      ];
+    }
+    return [
+      { label: 'Type', value: 'Garde d\'enfants' },
+      { label: 'Enfants', value: `${detailData.children}` },
+      { label: 'Équipe', value: 'Solo' },
+      { label: 'Durée', value: `${detailData.hours}h` },
+    ];
+  }, [detailData, estimate.durationMinutes.max, estimate.durationMinutes.min, serviceType]);
 
   const handleConfirm = () => {
     if (!location.trim()) {
@@ -37,9 +77,8 @@ export function OrderConfirmScreen() {
         detail: detail as any,
       },
       {
-        onSuccess: () => {
-          // Pop the booking stack back to home, user can go to Orders tab
-          nav.getParent()?.navigate('OrdersTab');
+        onSuccess: (result: { id: string }) => {
+          nav.navigate('Search', { orderId: result.id });
         },
         onError: (err: any) => {
           Alert.alert(
@@ -51,164 +90,234 @@ export function OrderConfirmScreen() {
     );
   };
 
-  const renderDetailSummary = () => {
-    switch (serviceType) {
-      case 'menage':
-        return (
-          <>
-            <SummaryRow label="Surface" value={`${detail.surface} m²`} />
-            <SummaryRow label="Nettoyage" value={detail.cleanType === 'deep' ? 'En profondeur' : 'Simple'} />
-            <SummaryRow label="Équipe" value={detail.teamType === 'solo' ? 'Solo' : detail.teamType === 'duo' ? 'Duo' : 'Équipe'} />
-          </>
-        );
-      case 'cuisine':
-        return <SummaryRow label="Convives" value={`${detail.guests}`} />;
-      case 'childcare':
-        return (
-          <>
-            <SummaryRow label="Enfants" value={`${detail.children}`} />
-            <SummaryRow label="Durée" value={`${detail.hours}h`} />
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
-          <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
-        </TouchableOpacity>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <BackHeader title="Récapitulatif" onBack={() => nav.goBack()} right={<Chip label="Étape 2/3" variant="navy" />} />
 
-        <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
-          Confirmer la commande
-        </Text>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Card style={styles.recapCard}>
+          <View style={styles.recapHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tLabel}>SERVICE COMMANDÉ</Text>
+              <Text style={styles.recapTitle}>{SERVICE_LABELS[serviceType] ?? serviceType}</Text>
+              <Text style={styles.recapSubtitle}>{subtitle}</Text>
+            </View>
+            {serviceType === 'menage' ? <Chip label="1ère commande" variant="clay" /> : null}
+          </View>
 
-        {/* Service summary */}
-        <View style={styles.summaryCard}>
-          <Text style={[textStyles.h2, { color: colors.navy, marginBottom: spacing.sm }]}>
-            {SERVICE_LABELS[serviceType] ?? serviceType}
-          </Text>
-          {renderDetailSummary()}
+          <View style={styles.divider} />
+
+          {rows.map((row) => (
+            <SummaryRow key={row.label} label={row.label} value={row.value} />
+          ))}
+          <SummaryRow label="Adresse" value={location.trim() || 'À renseigner'} />
+          <SummaryRow label="Paiement" value="Espèces à la porte" />
+        </Card>
+
+        <View style={styles.priceBlock}>
+          <View>
+            <Text style={styles.priceLabel}>PLANCHER MINIMUM</Text>
+            <Text style={styles.priceValue}>{estimate.floorPrice} MAD</Text>
+            <Text style={styles.priceNote}>Prix final négocié via le chat</Text>
+          </View>
+          <View style={styles.priceSide}>
+            <ChatIcon size={22} color={colors.white} />
+            <Text style={styles.priceSideText}>Négociation</Text>
+          </View>
         </View>
 
-        {/* Price estimate */}
-        <View style={styles.estimateBox}>
-          <Text style={[textStyles.h3, { color: colors.navy }]}>Estimation de prix</Text>
-          <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
-            {estimate.floorPrice} — {estimate.ceiling} MAD
-          </Text>
-          <Text style={[textStyles.body, { color: colors.textSec, marginTop: 2 }]}>
-            Durée: {estimate.durationMinutes.min}–{estimate.durationMinutes.max} min
-          </Text>
+        <View style={styles.nextSteps}>
+          <Text style={styles.nextTitle}>Ce qui se passe ensuite</Text>
+          {[
+            'Babloo assigne des professionnelles disponibles dans votre quartier',
+            'Vous négociez le prix final via le chat',
+            'La professionnelle arrive, vous payez en espèces à la porte',
+            'Vous notez la prestation',
+          ].map((item, index) => (
+            <View key={item} style={styles.stepItem}>
+              <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>{index + 1}</Text></View>
+              <Text style={styles.stepText}>{item}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Location input */}
-        <Text style={styles.label}>Adresse</Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label="Adresse"
           placeholder="Ex: Casablanca, Maarif"
-          placeholderTextColor={colors.textMuted}
           value={location}
           onChangeText={setLocation}
-          accessibilityLabel="Adresse de service"
         />
-
-        {/* Confirm button */}
-        <TouchableOpacity
-          style={[styles.btn, createOrder.isPending && styles.btnDisabled]}
-          onPress={handleConfirm}
-          disabled={createOrder.isPending}
-          accessibilityRole="button"
-          accessibilityLabel="Confirmer la commande"
-        >
-          {createOrder.isPending ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.btnText}>Confirmer</Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
+
+      <View style={styles.ctaBar}>
+        <Button
+          variant="clay"
+          label="Confirmer et lancer la recherche"
+          onPress={handleConfirm}
+          loading={createOrder.isPending}
+          icon={<ChevronRightIcon size={16} color={colors.white} />}
+        />
+        <Text style={styles.ctaHelper}>Aucun prépaiement requis · Offre 1er service active</Text>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={summaryStyles.row}>
-      <Text style={summaryStyles.label}>{label}</Text>
-      <Text style={summaryStyles.value}>{value}</Text>
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowValue}>{value}</Text>
     </View>
   );
 }
 
-const summaryStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  label: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 13,
-    color: colors.textSec,
-  },
-  value: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 13,
-    color: colors.navy,
-  },
-});
-
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 80,
   },
-  back: { marginBottom: spacing.xl },
-  summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
+  content: {
     padding: spacing.lg,
-    marginBottom: spacing.md,
+    paddingBottom: 110,
+    gap: spacing.md,
   },
-  estimateBox: {
-    backgroundColor: colors.clayTint,
-    borderRadius: 14,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+  recapCard: {
+    padding: 18,
   },
-  label: {
-    fontFamily: 'DMSans_700Bold',
+  recapHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 14,
+  },
+  tLabel: {
+    ...textStyles.label,
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  recapTitle: {
+    ...textStyles.h2,
+    color: colors.navy,
+  },
+  recapSubtitle: {
+    color: colors.textSec,
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 2,
+  },
+  divider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginBottom: 8,
+    paddingTop: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 9,
+    gap: 8,
+  },
+  rowLabel: {
+    fontSize: 13,
+    color: colors.textSec,
+    fontFamily: 'DMSans_400Regular',
+  },
+  rowValue: {
     fontSize: 13,
     color: colors.navy,
-    marginBottom: spacing.xs,
-    marginTop: spacing.md,
+    fontFamily: 'DMSans_600SemiBold',
+    maxWidth: 210,
+    textAlign: 'right',
   },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 15,
-    color: colors.textPrimary,
-  },
-  btn: {
+  priceBlock: {
+    borderRadius: radius.lg,
     backgroundColor: colors.navy,
-    borderRadius: 14,
-    paddingVertical: 14,
+    padding: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.xl,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: {
-    color: colors.white,
+  priceLabel: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 10,
     fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+    letterSpacing: 1,
+    marginBottom: 5,
+  },
+  priceValue: {
+    color: colors.white,
+    fontFamily: 'Fraunces_700Bold',
+    fontSize: 28,
+    lineHeight: 30,
+  },
+  priceNote: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 2,
+  },
+  priceSide: {
+    opacity: 0.45,
+    alignItems: 'center',
+  },
+  priceSideText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 2,
+  },
+  nextSteps: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.bgAlt,
+    padding: 16,
+  },
+  nextTitle: {
+    ...textStyles.h3,
+    color: colors.navy,
+    marginBottom: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 11,
+    marginBottom: 10,
+  },
+  stepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.full,
+    backgroundColor: colors.navy,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+  },
+  stepText: {
+    flex: 1,
+    color: colors.textSec,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: 'DMSans_500Medium',
+  },
+  ctaBar: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: 28,
+    gap: spacing.sm,
+  },
+  ctaHelper: {
+    textAlign: 'center',
+    color: colors.textMuted,
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
   },
 });

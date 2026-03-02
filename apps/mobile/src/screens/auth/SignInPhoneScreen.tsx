@@ -1,68 +1,100 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { useOtpRequest } from '../../services/mutations/auth';
-import { colors, textStyles, spacing } from '../../theme';
+import { BackHeader, Button, Input } from '../../components';
+import { colors, fonts, radius, spacing, textStyles } from '../../theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
+
+function withAlpha(hexColor: string, alpha: number) {
+  const hex = hexColor.replace('#', '');
+  const bigint = Number.parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export function SignInPhoneScreen() {
   const nav = useNavigation<Nav>();
   const otpRequest = useOtpRequest();
   const [phone, setPhone] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!phone) return;
+    setErrorMessage(null);
     try {
       const { challengeId } = await otpRequest.mutateAsync({ phone, purpose: 'login' });
       nav.navigate('Otp', { challengeId, phone });
     } catch {
+      setErrorMessage('Aucun compte associé à ce numéro.');
       Alert.alert('Erreur', 'Impossible d\'envoyer le code. Vérifiez le numéro.');
     }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
-        <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
-      </TouchableOpacity>
+      <BackHeader title="Se connecter" onBack={() => nav.goBack()} />
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
-        Connexion par téléphone
-      </Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <View style={styles.intro}>
+          <Text style={styles.title} accessibilityRole="header">
+            Bon retour<Text style={styles.dot}>.</Text>
+          </Text>
+          <Text style={styles.subtitle}>Connectez-vous avec votre numéro</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="+212 6XX XXX XXX"
-        placeholderTextColor={colors.textMuted}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        textContentType="telephoneNumber"
-        accessibilityLabel="Numéro de téléphone"
-      />
+        <View style={styles.field}>
+          <Text style={styles.label}>Numéro de téléphone</Text>
+          <View style={styles.phoneRow}>
+            <View style={styles.prefixPill}>
+              <Text style={styles.prefixText}>🇲🇦 +212</Text>
+            </View>
+            <Input
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="06 00 00 00 00"
+              inputMode="tel"
+              style={styles.phoneInputWrap}
+            />
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={[styles.btn, otpRequest.isPending && styles.btnDisabled]}
-        onPress={handleSubmit}
-        disabled={otpRequest.isPending}
-        accessibilityRole="button"
-        accessibilityLabel="Recevoir un code"
-      >
-        {otpRequest.isPending ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.btnText}>Recevoir un code</Text>
-        )}
-      </TouchableOpacity>
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorIcon}>!</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
-      <TouchableOpacity onPress={() => nav.navigate('SignUpPhone')} style={{ marginTop: spacing.lg, alignSelf: 'center', minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Inscrivez-vous">
-        <Text style={[textStyles.body, { color: colors.clay }]}>
-          Pas encore de compte ? Inscrivez-vous
-        </Text>
-      </TouchableOpacity>
+        <Button
+          variant="primary"
+          label="Continuer"
+          onPress={handleSubmit}
+          loading={otpRequest.isPending}
+          disabled={otpRequest.isPending}
+        />
+
+        <Pressable
+          onPress={() => nav.navigate('SignUpPhone')}
+          style={styles.footerLink}
+          accessibilityRole="button"
+          accessibilityLabel="Inscrivez-vous"
+        >
+          <Text style={styles.footerLinkText}>Pas encore de compte ? Inscrivez-vous</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -71,32 +103,96 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 80,
   },
-  back: { marginBottom: spacing.xl },
-  input: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 15,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
+  scroll: {
+    flex: 1,
   },
-  btn: {
-    width: '100%',
-    backgroundColor: colors.navy,
-    borderRadius: 14,
-    paddingVertical: 14,
+  body: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  intro: {
+    marginBottom: 28,
+  },
+  title: {
+    ...textStyles.display,
+    color: colors.navy,
+    marginBottom: spacing.sm,
+  },
+  dot: {
+    color: colors.clay,
+  },
+  subtitle: {
+    ...textStyles.body,
+    color: colors.textSec,
+  },
+  field: {
+    marginBottom: spacing.md,
+  },
+  label: {
+    fontFamily: fonts.dmSans.bold,
+    fontSize: 12,
+    color: colors.navy,
+    marginBottom: 6,
+  },
+  phoneRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    columnGap: 8,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: {
-    color: colors.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+  prefixPill: {
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prefixText: {
+    fontFamily: fonts.dmSans.semiBold,
+    fontSize: 13,
+    color: colors.navy,
+  },
+  phoneInputWrap: {
+    flex: 1,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: withAlpha(colors.error, 0.28),
+    backgroundColor: withAlpha(colors.error, 0.08),
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: spacing.md,
+  },
+  errorIcon: {
+    width: 18,
+    fontFamily: fonts.dmSans.bold,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: 'center',
+    marginRight: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: fonts.dmSans.medium,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.error,
+  },
+  footerLink: {
+    marginTop: spacing.lg,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerLinkText: {
+    ...textStyles.body,
+    color: colors.clay,
   },
 });
