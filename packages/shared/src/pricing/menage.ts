@@ -47,22 +47,29 @@ export function computeMenagePrice(params: MenageParams): PriceResult {
   if (bracket) {
     const teamPrice = bracket[teamType];
     if (teamPrice === null) {
-      // Team type not available for this bracket, fall back to largest available
-      throw new Error(
-        `Team type '${teamType}' not available for surface ${surface}m²`,
-      );
+      const fallbackBracket = BRACKETS.find((b) => b[teamType] !== null);
+      if (!fallbackBracket) {
+        throw new Error(`Team type '${teamType}' is not supported for any surface`);
+      }
+      basePrice = fallbackBracket[teamType]!;
+    } else {
+      basePrice = teamPrice;
     }
-    basePrice = teamPrice;
   } else {
     // Over 300m²: use 300m² base + surcharge per extra 50m² block
     const base300 = BRACKETS[BRACKETS.length - 1][teamType];
+    let baseForTeam: number;
     if (base300 === null) {
-      throw new Error(
-        `Team type '${teamType}' not available for surface ${surface}m²`,
-      );
+      const fallbackBracket = BRACKETS.find((b) => b[teamType] !== null);
+      if (!fallbackBracket) {
+        throw new Error(`Team type '${teamType}' is not supported for any surface`);
+      }
+      baseForTeam = fallbackBracket[teamType]!;
+    } else {
+      baseForTeam = base300;
     }
     const extraBlocks = Math.ceil((surface - 300) / 50);
-    basePrice = base300 + extraBlocks * SURCHARGE_PER_50M2[teamType];
+    basePrice = baseForTeam + extraBlocks * SURCHARGE_PER_50M2[teamType];
   }
 
   // Deep clean multiplier

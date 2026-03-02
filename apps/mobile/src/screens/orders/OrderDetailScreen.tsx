@@ -1,7 +1,11 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +13,10 @@ import type { RouteProp } from '@react-navigation/native';
 import type { OrdersStackParamList } from '../../navigation/OrdersStack';
 import { useOrder } from '../../services/queries/orders';
 import { useCancelOrder } from '../../services/mutations/orders';
-import { colors, textStyles, spacing } from '../../theme';
+import { useCompleteOrder } from '../../services/mutations/dev';
+import { BackHeader, Button, Card, Chip } from '../../components';
+import { StarIcon, StarOutlineIcon } from '../../components';
+import { colors, radius, spacing, textStyles } from '../../theme';
 
 type Route = RouteProp<OrdersStackParamList, 'OrderDetail'>;
 type Nav = NativeStackNavigationProp<OrdersStackParamList>;
@@ -20,19 +27,18 @@ const SERVICE_LABELS: Record<string, string> = {
   childcare: 'Garde d\'enfants',
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  draft: { label: 'Brouillon', color: colors.textMuted, bg: colors.bgAlt },
-  submitted: { label: 'Soumise', color: colors.navy, bg: colors.bg },
-  searching: { label: 'Recherche', color: colors.warning, bg: colors.warningBg },
-  negotiating: { label: 'Négociation', color: colors.warning, bg: colors.warningBg },
-  accepted: { label: 'Acceptée', color: colors.success, bg: colors.successBg },
-  en_route: { label: 'En route', color: colors.proA, bg: '#EEEEFF' },
-  in_progress: { label: 'En cours', color: colors.proA, bg: '#EEEEFF' },
-  completed: { label: 'Terminée', color: colors.success, bg: colors.successBg },
-  cancelled: { label: 'Annulée', color: colors.error, bg: '#FCEAEA' },
+const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; chip: 'success' | 'warning' | 'navy' | 'default' }> = {
+  draft: { label: 'Brouillon', color: colors.textMuted, bg: colors.bgAlt, chip: 'default' },
+  submitted: { label: 'Soumise', color: colors.navy, bg: colors.bg, chip: 'navy' },
+  searching: { label: 'Recherche', color: colors.warning, bg: colors.warningBg, chip: 'warning' },
+  negotiating: { label: 'Négociation', color: colors.warning, bg: colors.warningBg, chip: 'warning' },
+  accepted: { label: 'Acceptée', color: colors.success, bg: colors.successBg, chip: 'success' },
+  en_route: { label: 'En route', color: colors.proA, bg: colors.bgAlt, chip: 'navy' },
+  in_progress: { label: 'En cours', color: colors.proA, bg: colors.bgAlt, chip: 'navy' },
+  completed: { label: 'Terminée', color: colors.success, bg: colors.successBg, chip: 'success' },
+  cancelled: { label: 'Annulée', color: colors.error, bg: colors.bgAlt, chip: 'default' },
 };
 
-// Statuses that can be cancelled (non-terminal, before in_progress)
 const CANCELLABLE = new Set(['draft', 'submitted', 'searching', 'negotiating', 'accepted', 'en_route']);
 
 interface StatusEvent {
@@ -50,6 +56,7 @@ export function OrderDetailScreen() {
   const { orderId } = route.params;
   const { data: order, isLoading, refetch } = useOrder(orderId);
   const cancelOrder = useCancelOrder();
+  const completeOrder = useCompleteOrder();
 
   const handleCancel = () => {
     Alert.alert(
@@ -91,213 +98,156 @@ export function OrderDetailScreen() {
   const canCancel = CANCELLABLE.has(order.status);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <TouchableOpacity
-        onPress={() => nav.goBack()}
-        style={styles.back}
-        accessibilityRole="button"
-        accessibilityLabel="Retour"
-      >
-        <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
-      </TouchableOpacity>
+    <View style={styles.flex}>
+      <BackHeader
+        title={SERVICE_LABELS[order.serviceType] ?? order.serviceType}
+        onBack={() => nav.goBack()}
+        right={<Chip label={statusInfo.label} variant={statusInfo.chip} />}
+      />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text
-          style={[textStyles.h1, { color: colors.navy }]}
-          accessibilityRole="header"
-        >
-          {SERVICE_LABELS[order.serviceType] ?? order.serviceType}
-        </Text>
-        <View
-          style={[styles.badge, { backgroundColor: statusInfo.bg }]}
-          accessibilityLabel={`Statut : ${statusInfo.label}`}
-        >
-          <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-        </View>
-      </View>
-
-      {/* Price */}
-      <View style={styles.priceBox}>
-        {order.finalPrice != null ? (
-          <>
-            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix final</Text>
-            <Text style={[textStyles.h2, { color: colors.success, marginTop: 4 }]}>
-              {order.finalPrice} MAD
-            </Text>
-            <Text style={[textStyles.body, { color: colors.textMuted, fontSize: 12, marginTop: 2 }]}>
-              Prix plancher : {order.floorPrice} MAD
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={[textStyles.h3, { color: colors.navy }]}>Prix plancher</Text>
-            <Text style={[textStyles.h2, { color: colors.clay, marginTop: 4 }]}>
-              {order.floorPrice} MAD
-            </Text>
-          </>
-        )}
-      </View>
-
-      {/* Details */}
-      {order.detail && (
-        <View style={styles.section}>
-          <Text style={[textStyles.h3, { color: colors.navy, marginBottom: spacing.sm }]}>Détails</Text>
-          {order.detail.surface != null && (
-            <DetailRow label="Surface" value={`${order.detail.surface} m²`} />
-          )}
-          {order.detail.cleanType && (
-            <DetailRow label="Nettoyage" value={order.detail.cleanType === 'deep' ? 'En profondeur' : 'Simple'} />
-          )}
-          {order.detail.teamType && (
-            <DetailRow label="Équipe" value={order.detail.teamType === 'solo' ? 'Solo' : order.detail.teamType === 'duo' ? 'Duo' : 'Équipe'} />
-          )}
-          {order.detail.guests != null && (
-            <DetailRow label="Convives" value={`${order.detail.guests}`} />
-          )}
-          {order.detail.children != null && (
-            <DetailRow label="Enfants" value={`${order.detail.children}`} />
-          )}
-          {order.detail.hours != null && (
-            <DetailRow label="Durée" value={`${order.detail.hours}h`} />
-          )}
-        </View>
-      )}
-
-      {/* Location */}
-      <View style={styles.section}>
-        <Text style={[textStyles.h3, { color: colors.navy, marginBottom: spacing.sm }]}>Localisation</Text>
-        <Text style={[textStyles.body, { color: colors.textPrimary }]}>{order.location}</Text>
-      </View>
-
-      {/* Status Timeline */}
-      {order.statusEvents && order.statusEvents.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[textStyles.h3, { color: colors.navy, marginBottom: spacing.sm }]}>Historique</Text>
-          {order.statusEvents.map((evt: StatusEvent) => {
-            const toInfo = STATUS_LABELS[evt.toStatus] ?? STATUS_LABELS.draft;
-            const date = new Date(evt.createdAt).toLocaleString('fr-FR', {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-            return (
-              <View key={evt.id} style={styles.timelineItem}>
-                <View style={[styles.dot, { backgroundColor: toInfo.color }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[textStyles.body, { color: colors.textPrimary }]}>
-                    {toInfo.label}
-                  </Text>
-                  <Text style={[textStyles.body, { color: colors.textMuted, fontSize: 11 }]}>
-                    {date}
-                  </Text>
-                  {evt.reason && (
-                    <Text style={[textStyles.body, { color: colors.textSec, fontStyle: 'italic', marginTop: 2 }]}>
-                      {evt.reason}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Rating card (when rated) */}
-      {order.rating && (
-        <View style={styles.section}>
-          <Text style={[textStyles.h3, { color: colors.navy, marginBottom: spacing.sm }]}>Votre évaluation</Text>
-          <View style={styles.ratingStars}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Text key={n} style={{ fontSize: 20, color: n <= order.rating.stars ? colors.warning : colors.border }}>★</Text>
-            ))}
-          </View>
-          {order.rating.comment ? (
-            <Text style={[textStyles.body, { color: colors.textSec, fontStyle: 'italic', marginTop: spacing.sm }]}>
-              {order.rating.comment}
-            </Text>
-          ) : null}
-        </View>
-      )}
-
-      {/* Rate CTA (completed + not yet rated) */}
-      {order.status === 'completed' && !order.rating && (
-        <TouchableOpacity
-          style={styles.rateBtn}
-          onPress={() => nav.navigate('Rating', { orderId })}
-          accessibilityRole="button"
-          accessibilityLabel="Évaluer le service"
-        >
-          <Text style={styles.rateBtnText}>★ Évaluer</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Negotiate button (only during negotiating status) */}
-      {order.status === 'negotiating' && (
-        <TouchableOpacity
-          style={styles.negotiateBtn}
-          onPress={() => nav.navigate('Chat', { orderId })}
-          accessibilityRole="button"
-          accessibilityLabel="Négocier le prix"
-        >
-          <Text style={styles.negotiateBtnText}>Négocier</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Cancel button */}
-      {canCancel && (
-        <TouchableOpacity
-          style={[styles.cancelBtn, cancelOrder.isPending && styles.btnDisabled]}
-          onPress={handleCancel}
-          disabled={cancelOrder.isPending}
-          accessibilityRole="button"
-          accessibilityLabel="Annuler la commande"
-        >
-          {cancelOrder.isPending ? (
-            <ActivityIndicator color={colors.white} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.priceBlock}>
+          {order.finalPrice != null ? (
+            <>
+              <Text style={styles.priceLabel}>MONTANT PAYÉ</Text>
+              <Text style={styles.priceValue}>{order.finalPrice} MAD</Text>
+              <Text style={styles.priceNote}>Prix plancher : {order.floorPrice} MAD</Text>
+            </>
           ) : (
-            <Text style={styles.cancelBtnText}>Annuler la commande</Text>
+            <>
+              <Text style={styles.priceLabel}>PLANCHER MINIMUM</Text>
+              <Text style={styles.priceValue}>{order.floorPrice} MAD</Text>
+              <Text style={styles.priceNote}>Prix final négocié via le chat</Text>
+            </>
           )}
-        </TouchableOpacity>
-      )}
-    </ScrollView>
+        </View>
+
+        {order.detail && (
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>DÉTAILS</Text>
+            {order.detail.surface != null && <DetailRow label="Surface" value={`${order.detail.surface} m²`} />}
+            {order.detail.cleanType && <DetailRow label="Nettoyage" value={order.detail.cleanType === 'deep' ? 'En profondeur' : 'Simple'} />}
+            {order.detail.teamType && <DetailRow label="Équipe" value={order.detail.teamType === 'solo' ? 'Solo' : order.detail.teamType === 'duo' ? 'Duo' : 'Squad'} />}
+            {order.detail.guests != null && <DetailRow label="Convives" value={`${order.detail.guests}`} />}
+            {order.detail.children != null && <DetailRow label="Enfants" value={`${order.detail.children}`} />}
+            {order.detail.hours != null && <DetailRow label="Durée" value={`${order.detail.hours}h`} />}
+          </Card>
+        )}
+
+        <Card style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>LOCALISATION</Text>
+          <Text style={styles.locationText}>{order.location}</Text>
+        </Card>
+
+        {order.statusEvents?.length > 0 && (
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>HISTORIQUE</Text>
+            {order.statusEvents.map((evt: StatusEvent, idx: number) => {
+              const toInfo = STATUS_LABELS[evt.toStatus] ?? STATUS_LABELS.draft;
+              const date = new Date(evt.createdAt).toLocaleString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+
+              return (
+                <View key={evt.id} style={[styles.timelineRow, idx === order.statusEvents.length - 1 && { marginBottom: 0 }]}>
+                  <View style={[styles.timelineDot, { backgroundColor: toInfo.color }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.timelineTitle}>{toInfo.label}</Text>
+                    <Text style={styles.timelineDate}>{date}</Text>
+                    {evt.reason ? <Text style={styles.timelineReason}>{evt.reason}</Text> : null}
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        )}
+
+        {order.rating && (
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>VOTRE ÉVALUATION</Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                n <= order.rating.stars ? (
+                  <StarIcon key={n} size={20} color={colors.navy} />
+                ) : (
+                  <StarOutlineIcon key={n} size={20} color="#D8D7EE" />
+                )
+              ))}
+            </View>
+            {order.rating.comment ? <Text style={styles.ratingComment}>"{order.rating.comment}"</Text> : null}
+          </Card>
+        )}
+
+        {order.status === 'completed' && !order.rating && (
+          <Button
+            variant="outline"
+            label="Évaluer le service"
+            onPress={() => nav.navigate('Rating', { orderId })}
+          />
+        )}
+
+        {order.status === 'negotiating' && (
+          <Button
+            variant="primary"
+            label="Négocier"
+            onPress={() => nav.navigate('Chat', { orderId })}
+          />
+        )}
+
+        {__DEV__ && ['negotiating', 'accepted', 'en_route', 'in_progress'].includes(order.status) && (
+          <Button
+            variant="outline"
+            label="[DEV] Simuler la complétion"
+            onPress={() =>
+              completeOrder.mutate(orderId, {
+                onSuccess: () => refetch(),
+                onError: (err: any) => {
+                  Alert.alert(
+                    'Erreur',
+                    err?.response?.data?.error?.message ?? 'Impossible de compléter la commande',
+                  );
+                },
+              })
+            }
+            loading={completeOrder.isPending}
+          />
+        )}
+
+        {canCancel && (
+          <Button
+            variant="clay"
+            label="Annuler la commande"
+            onPress={handleCancel}
+            loading={cancelOrder.isPending}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={detailStyles.row}>
-      <Text style={detailStyles.label}>{label}</Text>
-      <Text style={detailStyles.value}>{value}</Text>
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowValue}>{value}</Text>
     </View>
   );
 }
 
-const detailStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-  },
-  label: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 13,
-    color: colors.textSec,
-  },
-  value: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 13,
-    color: colors.navy,
-  },
-});
-
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 80,
+  },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing['2xl'],
+    gap: spacing.md,
   },
   centered: {
     flex: 1,
@@ -305,85 +255,93 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  back: { marginBottom: spacing.xl },
-  header: {
+  priceBlock: {
+    borderRadius: radius.lg,
+    padding: 18,
+    backgroundColor: colors.navy,
+  },
+  priceLabel: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 10,
+    letterSpacing: 1,
+    fontFamily: 'DMSans_700Bold',
+    marginBottom: 4,
+  },
+  priceValue: {
+    color: colors.white,
+    fontFamily: 'Fraunces_700Bold',
+    fontSize: 28,
+  },
+  priceNote: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 2,
+  },
+  sectionCard: {
+    padding: 16,
+  },
+  sectionLabel: {
+    ...textStyles.label,
+    color: colors.textMuted,
+    marginBottom: 10,
+  },
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
+    gap: 8,
+    marginBottom: 8,
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+  rowLabel: {
+    color: colors.textSec,
+    fontSize: 13,
+    fontFamily: 'DMSans_400Regular',
   },
-  badgeText: {
+  rowValue: {
+    color: colors.navy,
+    fontSize: 13,
     fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12,
+    maxWidth: 210,
+    textAlign: 'right',
   },
-  priceBox: {
-    backgroundColor: colors.clayTint,
-    borderRadius: 14,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+  locationText: {
+    color: colors.textPrimary,
+    ...textStyles.body,
   },
-  section: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  timelineItem: {
+  timelineRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
     gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  dot: {
+  timelineDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginTop: 5,
+    borderRadius: radius.full,
+    marginTop: 6,
   },
-  cancelBtn: {
-    backgroundColor: colors.error,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
+  timelineTitle: {
+    color: colors.textPrimary,
+    ...textStyles.body,
   },
-  btnDisabled: { opacity: 0.6 },
-  cancelBtnText: {
-    color: colors.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+  timelineDate: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
   },
-  negotiateBtn: {
-    backgroundColor: colors.navy,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
+  timelineReason: {
+    color: colors.textSec,
+    ...textStyles.body,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
-  negotiateBtnText: {
-    color: colors.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
-  },
-  ratingStars: {
+  starRow: {
     flexDirection: 'row',
     gap: 4,
   },
-  rateBtn: {
-    backgroundColor: colors.warning,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  rateBtnText: {
-    color: colors.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+  ratingComment: {
+    marginTop: spacing.sm,
+    color: colors.textSec,
+    ...textStyles.body,
+    fontStyle: 'italic',
   },
 });

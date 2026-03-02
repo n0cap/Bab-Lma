@@ -1,13 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogin } from '../../services/mutations/auth';
-import { colors, textStyles, spacing } from '../../theme';
+import { BackHeader, Button, Input } from '../../components';
+import { colors, fonts, radius, spacing, textStyles } from '../../theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
+
+function withAlpha(hexColor: string, alpha: number) {
+  const hex = hexColor.replace('#', '');
+  const bigint = Number.parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export function SignInEmailScreen() {
   const nav = useNavigation<Nav>();
@@ -15,73 +33,103 @@ export function SignInEmailScreen() {
   const login = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!email || !password) return;
+    setErrorMessage(null);
     try {
       const tokens = await login.mutateAsync({ email, password });
       await signIn(tokens);
     } catch {
+      setErrorMessage('E-mail ou mot de passe incorrect.');
       Alert.alert('Erreur', 'Identifiants invalides');
     }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => nav.goBack()} style={styles.back} accessibilityRole="button" accessibilityLabel="Retour">
-        <Text style={[textStyles.body, { color: colors.navy }]}>← Retour</Text>
-      </TouchableOpacity>
+      <BackHeader title="Se connecter" onBack={() => nav.goBack()} />
 
-      <Text style={[textStyles.h1, { color: colors.navy, marginBottom: spacing.lg }]} accessibilityRole="header">
-        Connexion par email
-      </Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <View style={styles.intro}>
+          <Text style={styles.title} accessibilityRole="header">
+            Bon retour<Text style={styles.dot}>.</Text>
+          </Text>
+          <Text style={styles.subtitle}>Connectez-vous avec votre e-mail</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="votre@email.com"
-        placeholderTextColor={colors.textMuted}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        accessibilityLabel="Adresse email"
-      />
+        <View style={styles.fields}>
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            label="Adresse e-mail"
+            placeholder="votre@email.com"
+            inputMode="email"
+            style={styles.field}
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Votre mot de passe"
-        placeholderTextColor={colors.textMuted}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        textContentType="password"
-        accessibilityLabel="Mot de passe"
-      />
+          <View style={styles.field}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Mot de passe</Text>
+              <Pressable
+                onPress={() => nav.navigate('ForgotPassword')}
+                style={styles.forgotLink}
+                accessibilityRole="button"
+                accessibilityLabel="Mot de passe oublié"
+              >
+                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+              </Pressable>
+            </View>
 
-      <TouchableOpacity onPress={() => nav.navigate('ForgotPassword')} style={{ alignSelf: 'flex-end', marginBottom: spacing.lg, minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Mot de passe oublié">
-        <Text style={[textStyles.body, { color: colors.clay }]}>Mot de passe oublié ?</Text>
-      </TouchableOpacity>
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="••••••••"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                textContentType="password"
+                accessibilityLabel="Mot de passe"
+              />
+              <Pressable
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword((current) => !current)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Masquer' : 'Afficher'}
+              >
+                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={[styles.btn, login.isPending && styles.btnDisabled]}
-        onPress={handleSubmit}
-        disabled={login.isPending}
-        accessibilityRole="button"
-        accessibilityLabel="Se connecter"
-      >
-        {login.isPending ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.btnText}>Se connecter</Text>
-        )}
-      </TouchableOpacity>
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorIcon}>!</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
-      <TouchableOpacity onPress={() => nav.navigate('SignUpEmail')} style={{ marginTop: spacing.lg, minHeight: 48 }} accessibilityRole="button" accessibilityLabel="Inscrivez-vous">
-        <Text style={[textStyles.body, { color: colors.clay }]}>
-          Pas encore de compte ? Inscrivez-vous
-        </Text>
-      </TouchableOpacity>
+        <Button
+          variant="primary"
+          label="Se connecter"
+          onPress={handleSubmit}
+          loading={login.isPending}
+          disabled={login.isPending}
+        />
+
+        <Pressable
+          onPress={() => nav.navigate('SignUpEmail')}
+          style={styles.footerLink}
+          accessibilityRole="button"
+          accessibilityLabel="Inscrivez-vous"
+        >
+          <Text style={styles.footerLinkText}>Pas encore de compte ? Inscrivez-vous</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -90,32 +138,119 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 80,
   },
-  back: { marginBottom: spacing.xl },
-  input: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 15,
-    color: colors.textPrimary,
+  scroll: {
+    flex: 1,
+  },
+  body: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  intro: {
+    marginBottom: 28,
+  },
+  title: {
+    ...textStyles.display,
+    color: colors.navy,
+    marginBottom: spacing.sm,
+  },
+  dot: {
+    color: colors.clay,
+  },
+  subtitle: {
+    ...textStyles.body,
+    color: colors.textSec,
+  },
+  fields: {
     marginBottom: spacing.md,
   },
-  btn: {
-    width: '100%',
-    backgroundColor: colors.navy,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
+  field: {
+    marginBottom: spacing.md,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: {
-    color: colors.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 6,
+  },
+  label: {
+    fontFamily: fonts.dmSans.bold,
+    fontSize: 12,
+    color: colors.navy,
+  },
+  forgotLink: {
+    minHeight: 24,
+    justifyContent: 'center',
+  },
+  forgotText: {
+    fontFamily: fonts.dmSans.bold,
+    fontSize: 11,
+    color: colors.clay,
+  },
+  passwordWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    paddingRight: 44,
+    backgroundColor: colors.surface,
+    color: colors.navy,
+    fontFamily: fonts.dmSans.regular,
+    fontSize: 14,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 10,
+    height: 30,
+    width: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyeText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: withAlpha(colors.error, 0.28),
+    backgroundColor: withAlpha(colors.error, 0.08),
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: spacing.md,
+  },
+  errorIcon: {
+    width: 18,
+    fontFamily: fonts.dmSans.bold,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: 'center',
+    marginRight: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: fonts.dmSans.medium,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.error,
+  },
+  footerLink: {
+    marginTop: spacing.lg,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerLinkText: {
+    ...textStyles.body,
+    color: colors.clay,
   },
 });
