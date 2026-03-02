@@ -11,6 +11,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { BackHeader, Button, Card, Chip } from '../../components';
+import { useDeclineAssignment } from '../../services/mutations/proAssignment';
 import type { ProStackParamList } from '../../navigation/ProStack';
 import { useUpdateOrderStatus } from '../../services/mutations/pro';
 import { useProOrders } from '../../services/queries/pro';
@@ -42,6 +43,7 @@ export function ProOrderDetailScreen() {
   const route = useRoute<Route>();
   const { orderId } = route.params;
   const updateStatus = useUpdateOrderStatus();
+  const declineAssignment = useDeclineAssignment();
   const { data, isLoading, refetch } = useProOrders();
 
   React.useEffect(() => {
@@ -137,29 +139,32 @@ export function ProOrderDetailScreen() {
           })}
         </Card>
 
-        {order.assignmentStatus === 'assigned' && (
+        {order.status === 'negotiating' && (
           <>
             <Button
               variant="primary"
-              label="Accepter la mission"
-              onPress={() => setStatus('en_route')}
-              loading={updateStatus.isPending}
+              label="Ouvrir le chat"
+              onPress={() => nav.navigate('Chat', { orderId })}
             />
-            <Button
-              variant="outline"
-              label="Décliner"
-              onPress={() => setStatus('cancelled', 'Mission déclinée par le professionnel')}
-              disabled={updateStatus.isPending}
-            />
+            {order.assignmentStatus === 'assigned' && (
+              <Button
+                variant="outline"
+                label="Décliner"
+                onPress={() =>
+                  declineAssignment.mutate(
+                    { assignmentId: order.assignmentId },
+                    {
+                      onSuccess: () => refetch(),
+                      onError: (err: any) => {
+                        Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
+                      },
+                    },
+                  )
+                }
+                disabled={declineAssignment.isPending}
+              />
+            )}
           </>
-        )}
-
-        {order.status === 'negotiating' && (
-          <Button
-            variant="primary"
-            label="Ouvrir le chat"
-            onPress={() => nav.navigate('Chat', { orderId })}
-          />
         )}
 
         {order.status === 'accepted' && (

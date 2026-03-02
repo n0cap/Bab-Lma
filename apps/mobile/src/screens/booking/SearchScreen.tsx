@@ -14,7 +14,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Avatar, BackHeader, Card, Chip } from '../../components';
 import { CheckIcon, ChevronRightIcon, SearchIcon, StarIcon, WarningIcon } from '../../components';
 import type { HomeStackParamList } from '../../navigation/HomeStack';
-import { useSimulateOrder } from '../../services/mutations/dev';
+import { useOrder } from '../../services/queries/orders';
 import { colors, radius, spacing, textStyles } from '../../theme';
 
 type Route = RouteProp<HomeStackParamList, 'Search'>;
@@ -50,25 +50,26 @@ export function SearchScreen() {
   const [phase, setPhase] = useState<'searching' | 'results'>('searching');
   const [statusIndex, setStatusIndex] = useState(0);
   const [assignedPro, setAssignedPro] = useState<AssignedPro | null>(null);
-
-  const simulateOrder = useSimulateOrder();
-  const simulateRef = useRef(simulateOrder.mutate);
-  simulateRef.current = simulateOrder.mutate;
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+  const { data: order, refetch, isFetching } = useOrder(orderId);
 
   const progress = useRef(new Animated.Value(0)).current;
   const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let isMounted = true;
-
     progress.setValue(0);
     setPhase('searching');
     setStatusIndex(0);
     setAssignedPro(null);
+    setHasTimedOut(false);
+  }, [orderId, progress]);
+
+  useEffect(() => {
+    if (phase !== 'searching') return;
 
     const progressAnim = Animated.timing(progress, {
       toValue: 1,
-      duration: 5000,
+      duration: 10000,
       easing: Easing.linear,
       useNativeDriver: false,
     });
@@ -89,51 +90,54 @@ export function SearchScreen() {
       setStatusIndex((prev) => (prev + 1) % SEARCH_STATUS.length);
     }, 1500);
 
-    simulateRef.current(orderId, {
-      onSuccess: (order) => {
-        if (!isMounted) return;
-
-        const lead = order?.assignments?.find((a: any) => a.isLead) ?? order?.assignments?.[0];
-        if (!lead?.professional?.user) return;
-
-        const userName = (lead.professional.user.fullName as string) ?? 'Professionnelle assignée';
-        const initials = userName
-          .split(' ')
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part: string) => part[0]?.toUpperCase() ?? '')
-          .join('') || 'PR';
-
-        setAssignedPro({
-          id: lead.professional.id,
-          name: userName,
-          initials,
-          role: 'Professionnelle',
-          rating: Number(lead.professional.rating ?? 0),
-          sessions: Number(lead.professional.totalSessions ?? 0),
-          reliability: Math.round(Number(lead.professional.reliability ?? 0)),
-          skills: Array.isArray(lead.professional.skills)
-            ? lead.professional.skills.map((skill: string) => SKILL_LABELS[skill] ?? skill)
-            : [],
-        });
-      },
-    });
-
-    const finishTimeout = setTimeout(() => {
-      if (!isMounted) return;
-      setPhase('results');
-      clearInterval(statusInterval);
-      spinLoop.stop();
-    }, 5000);
+    const timeout = setTimeout(() => {
+      setHasTimedOut(true);
+    }, 10000);
 
     return () => {
-      isMounted = false;
       clearInterval(statusInterval);
-      clearTimeout(finishTimeout);
+      clearTimeout(timeout);
       progressAnim.stop();
       spinLoop.stop();
     };
-  }, [orderId]);
+  }, [phase, progress, spin]);
+
+  useEffect(() => {
+    if (phase !== 'searching') return;
+    const interval = setInterval(() => {
+      refetch();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [phase, refetch]);
+
+  useEffect(() => {
+    if (order?.status !== 'negotiating') return;
+
+    const lead = order.assignments?.find((a: any) => a.isLead) ?? order.assignments?.[0];
+    if (!lead?.professional?.user) return;
+
+    const userName = (lead.professional.user.fullName as string) ?? 'Professionnelle assignée';
+    const initials = userName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0]?.toUpperCase() ?? '')
+      .join('') || 'PR';
+
+    setAssignedPro({
+      id: lead.professional.id,
+      name: userName,
+      initials,
+      role: 'Professionnelle',
+      rating: Number(lead.professional.rating ?? 0),
+      sessions: Number(lead.professional.totalSessions ?? 0),
+      reliability: Math.round(Number(lead.professional.reliability ?? 0)),
+      skills: Array.isArray(lead.professional.skills)
+        ? lead.professional.skills.map((skill: string) => SKILL_LABELS[skill] ?? skill)
+        : [],
+    });
+    setPhase('results');
+  }, [order]);
 
   const spinInterpolate = spin.interpolate({
     inputRange: [0, 1],
@@ -187,12 +191,23 @@ export function SearchScreen() {
             </View>
 
             <Text style={styles.statusText}>{statusText}</Text>
-            {simulateOrder.isPending ? (
+            {isFetching ? (
               <View style={styles.pendingRow}>
                 <ActivityIndicator size="small" color={colors.navy} />
-                <Text style={styles.pendingText}>Simulation de l&apos;assignation en cours…</Text>
+                <Text style={styles.pendingText}>Recherche d&apos;une professionnelle en cours…</Text>
               </View>
             ) : null}
+
+            {hasTimedOut && (
+              <Card style={styles.emptyCard}>
+                <Text style={styles.emptyText}>
+                  La recherche continue en arrière-plan. Revenez à l&apos;écran précédent puis réessayez dans un instant.
+                </Text>
+                <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+                  <Text style={styles.backButtonText}>Retour</Text>
+                </Pressable>
+              </Card>
+            )}
           </View>
         ) : (
           <View>
@@ -240,7 +255,7 @@ export function SearchScreen() {
             ) : (
               <Card style={styles.emptyCard}>
                 <Text style={styles.emptyText}>
-                  La simulation a échoué. Revenez à l&apos;écran précédent puis réessayez.
+                  Aucun professionnel trouvé pour le moment. Revenez à l&apos;écran précédent puis réessayez.
                 </Text>
               </Card>
             )}
@@ -393,5 +408,18 @@ const styles = StyleSheet.create({
   emptyText: {
     ...textStyles.body,
     color: colors.textSec,
+  },
+  backButton: {
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.navy,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  backButtonText: {
+    color: colors.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
   },
 });

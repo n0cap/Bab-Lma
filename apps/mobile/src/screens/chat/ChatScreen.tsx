@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -114,6 +115,22 @@ export function ChatScreen() {
   }, [offers, user]);
 
   const isNegotiating = order?.status === 'negotiating';
+  const leadAssignment = useMemo(
+    () => order?.assignments?.find((assignment: any) => assignment.isLead) ?? order?.assignments?.[0],
+    [order],
+  );
+  const counterpartyName = useMemo(() => {
+    if (!user) return 'Professionnelle';
+    if (user.role === 'pro') {
+      return order?.client?.fullName ?? 'Client';
+    }
+    return leadAssignment?.professional?.user?.fullName ?? 'Professionnelle';
+  }, [leadAssignment, order, user]);
+  const counterpartyInitials = useMemo(() => {
+    const parts = counterpartyName.split(' ').filter(Boolean).slice(0, 2);
+    if (parts.length === 0) return 'PR';
+    return parts.map((part: string) => part[0]?.toUpperCase() ?? '').join('');
+  }, [counterpartyName]);
 
   if (messagesLoading) {
     return (
@@ -136,15 +153,16 @@ export function ChatScreen() {
       />
 
       <View style={styles.headerMetaWrap}>
-        <Avatar initials="Pro" size="md" variant="a" />
+        <Avatar initials={counterpartyInitials} size="md" variant="a" />
         <View style={styles.headerMetaText}>
-          <Text style={styles.headerName}>Professionnelle</Text>
+          <Text style={styles.headerName}>{counterpartyName}</Text>
           <Text style={styles.headerRole}>Négociation en cours</Text>
         </View>
       </View>
 
       <FlatList
         ref={flatListRef}
+        style={styles.flex}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }: { item: MessageItem }) => {
@@ -167,27 +185,29 @@ export function ChatScreen() {
       />
 
       {isNegotiating && order && (
-        <NegotiationBar
-          floorPrice={order.floorPrice}
-          onSendOffer={(amount) => {
-            if (socket?.connected) {
-              socket.emit('offer:create', { orderId, amount });
-            } else {
-              createOffer.mutate(amount);
-            }
-          }}
-          onAcceptOffer={() => {
-            if (pendingOfferFromOther) {
+        <ScrollView style={styles.negotiationScroll} nestedScrollEnabled>
+          <NegotiationBar
+            floorPrice={order.floorPrice}
+            onSendOffer={(amount) => {
               if (socket?.connected) {
-                socket.emit('offer:accept', { orderId, offerId: pendingOfferFromOther.id });
+                socket.emit('offer:create', { orderId, amount });
               } else {
-                acceptOffer.mutate(pendingOfferFromOther.id);
+                createOffer.mutate(amount);
               }
-            }
-          }}
-          pendingOfferFromOther={pendingOfferFromOther}
-          isSending={createOffer.isPending || acceptOffer.isPending}
-        />
+            }}
+            onAcceptOffer={() => {
+              if (pendingOfferFromOther) {
+                if (socket?.connected) {
+                  socket.emit('offer:accept', { orderId, offerId: pendingOfferFromOther.id });
+                } else {
+                  acceptOffer.mutate(pendingOfferFromOther.id);
+                }
+              }
+            }}
+            pendingOfferFromOther={pendingOfferFromOther}
+            isSending={createOffer.isPending || acceptOffer.isPending}
+          />
+        </ScrollView>
       )}
 
       <View style={styles.inputRow}>
@@ -225,6 +245,9 @@ export function ChatScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  negotiationScroll: {
+    maxHeight: 340,
+  },
   centered: {
     flex: 1,
     backgroundColor: colors.bg,

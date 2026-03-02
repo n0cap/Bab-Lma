@@ -4,6 +4,7 @@ import type { PricingParams } from '@babloo/shared';
 import type { CleanType, TeamType } from '@prisma/client';
 import { AppError } from '../middleware/error.handler';
 import { ORDER } from '../constants/errors';
+import { matchPro } from './matching.service';
 
 // ── types ────────────────────────────────────────────────
 
@@ -108,10 +109,9 @@ export async function create(userId: string, input: CreateOrderInput) {
     });
 
     // 4. Transition draft → submitted
-    const submitted = await tx.order.update({
+    await tx.order.update({
       where: { id: newOrder.id },
       data: { status: 'submitted' },
-      include: { detail: true },
     });
 
     // 5. StatusEvent: draft → submitted
@@ -125,7 +125,76 @@ export async function create(userId: string, input: CreateOrderInput) {
       },
     });
 
-    return submitted;
+    const selectedPro = await matchPro(
+      { serviceType: newOrder.serviceType, location: newOrder.location },
+      tx,
+    );
+
+    if (selectedPro) {
+      await tx.order.update({
+        where: { id: newOrder.id },
+        data: { status: 'searching' },
+      });
+
+      await tx.statusEvent.create({
+        data: {
+          orderId: newOrder.id,
+          fromStatus: 'submitted',
+          toStatus: 'searching',
+          actorUserId: userId,
+          actorRole: 'client',
+        },
+      });
+
+      await tx.orderAssignment.create({
+        data: {
+          orderId: newOrder.id,
+          professionalId: selectedPro.id,
+          isLead: true,
+          status: 'assigned',
+        },
+      });
+
+      await tx.order.update({
+        where: { id: newOrder.id },
+        data: { status: 'negotiating' },
+      });
+
+      await tx.statusEvent.create({
+        data: {
+          orderId: newOrder.id,
+          fromStatus: 'searching',
+          toStatus: 'negotiating',
+          actorUserId: userId,
+          actorRole: 'client',
+        },
+      });
+    }
+
+    return tx.order.findUniqueOrThrow({
+      where: { id: newOrder.id },
+      include: {
+        detail: true,
+        statusEvents: { orderBy: { seq: 'asc' } },
+        rating: true,
+        client: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+          },
+        },
+        assignments: {
+          include: {
+            professional: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+    });
   });
 
   return {
@@ -166,16 +235,35 @@ export async function list(input: ListOrdersInput) {
 // ── getById ──────────────────────────────────────────────
 
 export async function getById(userId: string, orderId: string) {
+  const { checkParticipant } = await import('../services/negotiation.service');
+  await checkParticipant(userId, orderId);
+
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
       detail: true,
       statusEvents: { orderBy: { seq: 'asc' } },
       rating: true,
+      client: {
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+        },
+      },
+      assignments: {
+        include: {
+          professional: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  if (!order || order.clientId !== userId) {
+  if (!order) {
     throw new AppError(404, 'NOT_FOUND', ORDER.NOT_FOUND);
   }
 

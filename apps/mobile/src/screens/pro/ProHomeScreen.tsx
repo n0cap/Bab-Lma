@@ -15,6 +15,8 @@ import { Avatar, Card, Chip, Toggle } from '../../components';
 import { StarIcon } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProStackParamList } from '../../navigation/ProStack';
+import { useToggleAvailability } from '../../services/mutations/proAvailability';
+import { useProProfile } from '../../services/queries/proProfile';
 import { useProOrders, type ProOrder } from '../../services/queries/pro';
 import { colors, radius, spacing, textStyles } from '../../theme';
 
@@ -62,8 +64,9 @@ export function ProHomeScreen() {
   const nav = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [isAvailable, setIsAvailable] = useState(true);
   const [activeTab, setActiveTab] = useState<ProTab>('pending');
+  const { data: profile } = useProProfile();
+  const toggleAvailability = useToggleAvailability();
 
   const {
     data,
@@ -83,6 +86,7 @@ export function ProHomeScreen() {
 
   const firstName = user?.fullName?.split(' ')[0] ?? 'Pro';
   const initials = getInitials(user?.fullName ?? 'Pro');
+  const isAvailable = profile?.isAvailable ?? false;
 
   if (isLoading) {
     return (
@@ -105,7 +109,10 @@ export function ProHomeScreen() {
           </View>
           <View style={styles.toggleWrap}>
             <Text style={styles.toggleLabel}>{isAvailable ? 'Disponible' : 'Hors ligne'}</Text>
-            <Toggle value={isAvailable} onToggle={() => setIsAvailable((v) => !v)} />
+            <Toggle
+              value={isAvailable}
+              onToggle={() => toggleAvailability.mutate({ isAvailable: !isAvailable })}
+            />
           </View>
         </View>
 
@@ -116,12 +123,12 @@ export function ProHomeScreen() {
               value={(
                 <View style={styles.ratingValue}>
                   <StarIcon size={14} color={colors.navy} />
-                  <Text style={styles.statValue}>4.8</Text>
+                  <Text style={styles.statValue}>{(profile?.rating ?? 0).toFixed(1)}</Text>
                 </View>
               )}
             />
-            <StatCol label="Sessions" value="127" />
-            <StatCol label="Fiabilité" value="97%" />
+            <StatCol label="Sessions" value={String(profile?.totalSessions ?? 0)} />
+            <StatCol label="Fiabilité" value={`${Math.round(profile?.reliability ?? 0)}%`} />
           </View>
         </Card>
       </View>
