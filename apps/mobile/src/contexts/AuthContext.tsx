@@ -6,6 +6,8 @@ import {
   storeRefreshToken,
   clearRefreshToken,
 } from '../services/secureStore';
+import { registerForPushNotifications } from '../services/notifications';
+import { registerPushToken, unregisterPushToken } from '../services/mutations/pushToken';
 
 interface AuthState {
   user: User | null;
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Refs to avoid stale closures in interceptors
   const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
+  const pushTokenRef = useRef<string | null>(null);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -135,6 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = await fetchUser(token);
         if (user) {
           setState({ user, accessToken: token, isAuthenticated: true, isLoading: false });
+          // Re-register push token on session restore (dedup handled server-side)
+          void registerForPushNotifications(async (pushToken, platform) => {
+            pushTokenRef.current = pushToken;
+            await registerPushToken({ token: pushToken, platform });
+          }).catch(() => {});
           return;
         }
       }
@@ -153,11 +161,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      void registerForPushNotifications(async (token, platform) => {
+        pushTokenRef.current = token;
+        await registerPushToken({ token, platform });
+      }).catch(() => {
+        // Best-effort push registration
+      });
     },
     [fetchUser],
   );
 
   const signOut = useCallback(async () => {
+    const pushToken = pushTokenRef.current;
+    if (pushToken) {
+      void unregisterPushToken({ token: pushToken }).catch(() => {
+        // Best-effort push unregistration
+      });
+      pushTokenRef.current = null;
+    }
+
     // Send refresh token to server so it can revoke the correct family
     const storedRefresh = await getStoredRefreshToken();
     try {

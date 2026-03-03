@@ -1,20 +1,56 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import { ChatIcon, HomeIcon, OrdersIcon, SettingsIcon } from '../components/icons';
+import { OffersStack } from './OffersStack';
+import type { OffersStackParamList } from './OffersStack';
 import { ProStack } from './ProStack';
 import type { ProStackParamList } from './ProStack';
-import { ProStatsScreen } from '../screens/pro/ProStatsScreen';
+import { ProChatListScreen } from '../screens/pro/ProChatListScreen';
+import { ChatScreen } from '../screens/chat/ChatScreen';
+import { ProProfileScreen } from '../screens/pro/ProProfileScreen';
 import { ProfileScreen } from '../screens/settings/ProfileScreen';
 import { colors } from '../theme';
 
+export type ProProfileStackParamList = {
+  ProProfile: undefined;
+  ProfileEdit: undefined;
+};
+
+export type ProChatStackParamList = {
+  ProChatList: undefined;
+  Chat: { orderId: string };
+};
+
 export type ProMainTabsParamList = {
   ProHomeTab: NavigatorScreenParams<ProStackParamList>;
-  ProStatsTab: undefined;
-  ProSettingsTab: undefined;
+  ProOffersTab: NavigatorScreenParams<OffersStackParamList>;
+  ProChatTab: NavigatorScreenParams<ProChatStackParamList>;
+  ProSettingsTab: NavigatorScreenParams<ProProfileStackParamList>;
 };
 
 const Tab = createBottomTabNavigator<ProMainTabsParamList>();
+const ProProfileStackNavigator = createNativeStackNavigator<ProProfileStackParamList>();
+const ProChatStackNavigator = createNativeStackNavigator<ProChatStackParamList>();
+
+function ProChatStack() {
+  return (
+    <ProChatStackNavigator.Navigator screenOptions={{ headerShown: false }}>
+      <ProChatStackNavigator.Screen name="ProChatList" component={ProChatListScreen} />
+      <ProChatStackNavigator.Screen name="Chat" component={ChatScreen} />
+    </ProChatStackNavigator.Navigator>
+  );
+}
+
+function ProProfileStack() {
+  return (
+    <ProProfileStackNavigator.Navigator screenOptions={{ headerShown: false }}>
+      <ProProfileStackNavigator.Screen name="ProProfile" component={ProProfileScreen} />
+      <ProProfileStackNavigator.Screen name="ProfileEdit" component={ProfileScreen} />
+    </ProProfileStackNavigator.Navigator>
+  );
+}
 
 export function ProMainTabs() {
   return (
@@ -32,11 +68,10 @@ export function ProMainTabs() {
           fontWeight: '700',
         },
         tabBarIcon: ({ color }) => {
-          let glyph = '◯';
-          if (route.name === 'ProHomeTab') glyph = '⌂';
-          if (route.name === 'ProStatsTab') glyph = '▤';
-          if (route.name === 'ProSettingsTab') glyph = '◎';
-          return <Text style={{ color, fontSize: 14 }}>{glyph}</Text>;
+          if (route.name === 'ProHomeTab') return <HomeIcon size={16} color={color} />;
+          if (route.name === 'ProOffersTab') return <OrdersIcon size={16} color={color} />;
+          if (route.name === 'ProChatTab') return <ChatIcon size={16} color={color} />;
+          return <SettingsIcon size={16} color={color} />;
         },
       })}
     >
@@ -46,13 +81,18 @@ export function ProMainTabs() {
         options={{ tabBarLabel: 'Missions' }}
       />
       <Tab.Screen
-        name="ProStatsTab"
-        component={ProStatsScreen}
-        options={{ tabBarLabel: 'Stats' }}
+        name="ProOffersTab"
+        component={OffersStack}
+        options={{ tabBarLabel: 'Offres' }}
+      />
+      <Tab.Screen
+        name="ProChatTab"
+        component={ProChatStack}
+        options={{ tabBarLabel: 'Chat' }}
       />
       <Tab.Screen
         name="ProSettingsTab"
-        component={ProfileScreen}
+        component={ProProfileStack}
         options={{ tabBarLabel: 'Profil' }}
       />
     </Tab.Navigator>

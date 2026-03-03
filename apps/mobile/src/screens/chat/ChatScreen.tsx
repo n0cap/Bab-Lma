@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -51,6 +51,7 @@ export function ChatScreen() {
   const acceptOffer = useAcceptOffer(orderId);
 
   const [input, setInput] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { socket } = useSocket();
   const queryClient = useQueryClient();
@@ -59,6 +60,15 @@ export function ChatScreen() {
     joinOrder(orderId);
     return () => leaveOrder(orderId);
   }, [orderId, joinOrder, leaveOrder]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const messages = useMemo(() => {
     if (!messagesData?.pages) return [];
@@ -143,8 +153,8 @@ export function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <BackHeader
         title=""
@@ -185,29 +195,28 @@ export function ChatScreen() {
       />
 
       {isNegotiating && order && (
-        <ScrollView style={styles.negotiationScroll} nestedScrollEnabled>
-          <NegotiationBar
-            floorPrice={order.floorPrice}
-            onSendOffer={(amount) => {
+        <NegotiationBar
+          floorPrice={order.floorPrice}
+          onSendOffer={(amount) => {
+            if (socket?.connected) {
+              socket.emit('offer:create', { orderId, amount });
+            } else {
+              createOffer.mutate(amount);
+            }
+          }}
+          onAcceptOffer={() => {
+            if (pendingOfferFromOther) {
               if (socket?.connected) {
-                socket.emit('offer:create', { orderId, amount });
+                socket.emit('offer:accept', { orderId, offerId: pendingOfferFromOther.id });
               } else {
-                createOffer.mutate(amount);
+                acceptOffer.mutate(pendingOfferFromOther.id);
               }
-            }}
-            onAcceptOffer={() => {
-              if (pendingOfferFromOther) {
-                if (socket?.connected) {
-                  socket.emit('offer:accept', { orderId, offerId: pendingOfferFromOther.id });
-                } else {
-                  acceptOffer.mutate(pendingOfferFromOther.id);
-                }
-              }
-            }}
-            pendingOfferFromOther={pendingOfferFromOther}
-            isSending={createOffer.isPending || acceptOffer.isPending}
-          />
-        </ScrollView>
+            }
+          }}
+          pendingOfferFromOther={pendingOfferFromOther}
+          isSending={createOffer.isPending || acceptOffer.isPending}
+          collapsed={keyboardVisible}
+        />
       )}
 
       <View style={styles.inputRow}>
@@ -245,9 +254,6 @@ export function ChatScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  negotiationScroll: {
-    maxHeight: 340,
-  },
   centered: {
     flex: 1,
     backgroundColor: colors.bg,

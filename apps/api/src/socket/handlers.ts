@@ -1,6 +1,7 @@
 import type { Socket, Server } from 'socket.io';
 import { withAuth } from './auth';
 import * as negotiationService from '../services/negotiation.service';
+import * as notificationService from '../services/notification.service';
 import { isValidTransition } from '@babloo/shared';
 import { prisma } from '../db';
 
@@ -57,6 +58,7 @@ async function handleMessageSend(
     );
 
     io.to(roomName(orderId)).emit('message:new', message);
+    notificationService.notifyNewMessage(orderId, socket.data.userId, content).catch(console.error);
   } catch (err: any) {
     socket.emit('error', { message: err?.message ?? 'Erreur lors de l\'envoi du message' });
   }
@@ -175,6 +177,10 @@ async function handleStatusUpdate(
     });
 
     io.to(roomName(orderId)).emit('order:updated', updated);
+    notificationService.notifyStatusChange(orderId, order.status, toStatus).catch(console.error);
+    if (toStatus === 'completed') {
+      notificationService.notifyRatePrompt(orderId, order.clientId).catch(console.error);
+    }
   } catch (err: any) {
     socket.emit('error', { message: err?.message ?? 'Erreur lors de la mise à jour du statut' });
   }

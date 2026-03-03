@@ -189,10 +189,10 @@ export function OrderDetailScreen() {
           />
         )}
 
-        {order.status === 'negotiating' && (
+        {['negotiating', 'accepted', 'en_route', 'in_progress'].includes(order.status) && (
           <Button
             variant="primary"
-            label="Négocier"
+            label={order.status === 'negotiating' ? 'Négocier' : 'Ouvrir le chat'}
             onPress={() => nav.navigate('Chat', { orderId })}
           />
         )}

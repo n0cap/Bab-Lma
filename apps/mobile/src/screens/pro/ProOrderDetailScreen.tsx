@@ -11,9 +11,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { BackHeader, Button, Card, Chip } from '../../components';
+import {
+  useApproveJoinRequest,
+  useRejectJoinRequest,
+} from '../../services/mutations/proApproveReject';
 import { useDeclineAssignment } from '../../services/mutations/proAssignment';
 import type { ProStackParamList } from '../../navigation/ProStack';
 import { useUpdateOrderStatus } from '../../services/mutations/pro';
+import { useJoinRequests } from '../../services/queries/proJoinRequests';
 import { useProOrders } from '../../services/queries/pro';
 import { colors, spacing, textStyles } from '../../theme';
 
@@ -44,6 +49,8 @@ export function ProOrderDetailScreen() {
   const { orderId } = route.params;
   const updateStatus = useUpdateOrderStatus();
   const declineAssignment = useDeclineAssignment();
+  const approveJoinRequest = useApproveJoinRequest();
+  const rejectJoinRequest = useRejectJoinRequest();
   const { data, isLoading, refetch } = useProOrders();
 
   React.useEffect(() => {
@@ -85,6 +92,18 @@ export function ProOrderDetailScreen() {
 
   const status = STATUS_META[order.status] ?? STATUS_META.draft;
   const serviceLabel = SERVICE_LABELS[order.serviceType] ?? order.serviceType;
+  const isAcceptedTeamLeadOrder = (
+    order.status === 'accepted'
+    && order.isLead
+    && ['duo', 'squad'].includes(order.detail?.teamType?.toLowerCase() ?? '')
+  );
+  const {
+    data: joinRequests,
+    isLoading: isLoadingJoinRequests,
+    refetch: refetchJoinRequests,
+  } = useJoinRequests(orderId, isAcceptedTeamLeadOrder);
+  const pendingRequests = joinRequests?.pending ?? [];
+  const confirmedMembers = joinRequests?.confirmed ?? [];
 
   return (
     <View style={styles.flex}>
@@ -139,32 +158,108 @@ export function ProOrderDetailScreen() {
           })}
         </Card>
 
-        {order.status === 'negotiating' && (
-          <>
-            <Button
-              variant="primary"
-              label="Ouvrir le chat"
-              onPress={() => nav.navigate('Chat', { orderId })}
-            />
-            {order.assignmentStatus === 'assigned' && (
-              <Button
-                variant="outline"
-                label="Décliner"
-                onPress={() =>
-                  declineAssignment.mutate(
-                    { assignmentId: order.assignmentId },
-                    {
-                      onSuccess: () => refetch(),
-                      onError: (err: any) => {
-                        Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
-                      },
-                    },
-                  )
-                }
-                disabled={declineAssignment.isPending}
-              />
+        {isAcceptedTeamLeadOrder && (
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>MEMBRES DE L'ÉQUIPE</Text>
+            {isLoadingJoinRequests ? (
+              <ActivityIndicator color={colors.navy} />
+            ) : (
+              <View style={styles.teamSection}>
+                <Text style={styles.teamSubTitle}>Demandes en attente</Text>
+                {pendingRequests.length === 0 ? (
+                  <Text style={styles.memberMeta}>Aucune demande en attente.</Text>
+                ) : pendingRequests.map((request) => (
+                  <View key={request.id} style={styles.memberRow}>
+                    <View style={styles.memberHeader}>
+                      <Text style={styles.memberName}>{request.professional.user.fullName}</Text>
+                      <Text style={styles.memberMeta}>
+                        {request.professional.rating.toFixed(1)} ★ • Fiabilité {Math.round(request.professional.reliability)}%
+                      </Text>
+                    </View>
+                    <View style={styles.memberActions}>
+                      <Button
+                        variant="primary"
+                        label="Accepter"
+                        onPress={() =>
+                          approveJoinRequest.mutate(
+                            { assignmentId: request.id, orderId },
+                            {
+                              onSuccess: () => {
+                                refetchJoinRequests();
+                              },
+                              onError: (err: any) => {
+                                Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
+                              },
+                            },
+                          )
+                        }
+                        loading={approveJoinRequest.isPending}
+                      />
+                      <Button
+                        variant="outline"
+                        label="Refuser"
+                        onPress={() =>
+                          rejectJoinRequest.mutate(
+                            { assignmentId: request.id, orderId },
+                            {
+                              onSuccess: () => {
+                                refetchJoinRequests();
+                              },
+                              onError: (err: any) => {
+                                Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
+                              },
+                            },
+                          )
+                        }
+                        loading={rejectJoinRequest.isPending}
+                      />
+                    </View>
+                  </View>
+                ))}
+
+                <Text style={styles.teamSubTitle}>Membres confirmés</Text>
+                {confirmedMembers.length === 0 ? (
+                  <Text style={styles.memberMeta}>Aucun membre confirmé.</Text>
+                ) : confirmedMembers.map((member) => (
+                  <View key={member.id} style={styles.memberRow}>
+                    <View style={styles.memberHeader}>
+                      <Text style={styles.memberName}>{member.professional.user.fullName}</Text>
+                      <Text style={styles.memberMeta}>
+                        {member.professional.rating.toFixed(1)} ★ • {member.professional.totalSessions} missions
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
             )}
-          </>
+          </Card>
+        )}
+
+        {['negotiating', 'accepted', 'en_route', 'in_progress'].includes(order.status) && (
+          <Button
+            variant={order.status === 'negotiating' ? 'primary' : 'outline'}
+            label="Ouvrir le chat"
+            onPress={() => nav.navigate('Chat', { orderId })}
+          />
+        )}
+
+        {order.status === 'negotiating' && order.assignmentStatus === 'assigned' && (
+          <Button
+            variant="outline"
+            label="Décliner"
+            onPress={() =>
+              declineAssignment.mutate(
+                { assignmentId: order.assignmentId },
+                {
+                  onSuccess: () => refetch(),
+                  onError: (err: any) => {
+                    Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
+                  },
+                },
+              )
+            }
+            disabled={declineAssignment.isPending}
+          />
         )}
 
         {order.status === 'accepted' && (
@@ -291,5 +386,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
     marginTop: 2,
+  },
+  teamSection: {
+    gap: spacing.md,
+  },
+  teamSubTitle: {
+    color: colors.navy,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+  },
+  memberRow: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  memberHeader: {
+    gap: 4,
+  },
+  memberName: {
+    color: colors.textPrimary,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+  },
+  memberMeta: {
+    color: colors.textMuted,
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+  },
+  memberActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });

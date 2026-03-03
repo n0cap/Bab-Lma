@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -11,7 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Card, Chip, Toggle } from '../../components';
+import { Avatar, Button, Card, Chip, Toggle } from '../../components';
 import { StarIcon } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProStackParamList } from '../../navigation/ProStack';
@@ -131,6 +132,12 @@ export function ProHomeScreen() {
             <StatCol label="Fiabilité" value={`${Math.round(profile?.reliability ?? 0)}%`} />
           </View>
         </Card>
+
+        <Button
+          variant="outline"
+          label="Calendrier personnel"
+          onPress={() => Alert.alert('Bientôt', 'Le calendrier personnel arrive bientôt.')}
+        />
       </View>
 
       <View style={styles.tabBar}>

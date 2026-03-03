@@ -5,6 +5,7 @@ import type { CleanType, TeamType } from '@prisma/client';
 import { AppError } from '../middleware/error.handler';
 import { ORDER } from '../constants/errors';
 import { matchPro } from './matching.service';
+import * as notificationService from './notification.service';
 
 // ── types ────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ function buildDetailData(serviceType: string, detail: Record<string, unknown>) {
 export async function create(userId: string, input: CreateOrderInput) {
   const params = extractPricingParams(input.serviceType, input.detail);
   const pricing = computePrice(input.serviceType as ServiceType, params);
+  let matchedProUserId: string | null = null;
 
   const order = await prisma.$transaction(async (tx) => {
     // 1. Create order in draft state
@@ -131,6 +133,8 @@ export async function create(userId: string, input: CreateOrderInput) {
     );
 
     if (selectedPro) {
+      matchedProUserId = selectedPro.userId;
+
       await tx.order.update({
         where: { id: newOrder.id },
         data: { status: 'searching' },
@@ -196,6 +200,16 @@ export async function create(userId: string, input: CreateOrderInput) {
       },
     });
   });
+
+  if (matchedProUserId) {
+    notificationService.notifyNewOffer(order.id, matchedProUserId).catch(console.error);
+
+    if (order.scheduledStartAt) {
+      notificationService
+        .scheduleServiceReminder(order.id, matchedProUserId, order.scheduledStartAt)
+        .catch(console.error);
+    }
+  }
 
   return {
     ...order,
