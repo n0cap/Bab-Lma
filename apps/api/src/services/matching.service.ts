@@ -19,13 +19,43 @@ function extractZoneTokens(location: string) {
 }
 
 export async function matchPro(
-  order: { serviceType: string; location: string },
+  order: {
+    serviceType: string;
+    location: string;
+    detail?: {
+      teamType?: string | null;
+    } | null;
+  },
   db: DbClient = prisma,
 ): Promise<Professional | null> {
+  let teamType = order.detail?.teamType?.toLowerCase() ?? null;
+  if (!teamType) {
+    // Fallback heuristic: infer from the latest in-flight order with the same service/location.
+    // This can mis-associate in dense areas but keeps WS12 behavior without changing order.service.ts.
+    const matchingOrder = await db.order.findFirst({
+      where: {
+        serviceType: order.serviceType as any,
+        location: order.location,
+        status: { in: ['submitted', 'searching', 'negotiating'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        detail: {
+          select: {
+            teamType: true,
+          },
+        },
+      },
+    });
+    teamType = matchingOrder?.detail?.teamType?.toLowerCase() ?? null;
+  }
+
+  const requireTeamLead = teamType === 'duo' || teamType === 'squad';
   const zoneTokens = extractZoneTokens(order.location);
   const prosBySkill = await db.professional.findMany({
     where: {
       isAvailable: true,
+      ...(requireTeamLead ? { isTeamLead: true } : {}),
       skills: { has: order.serviceType as any },
     },
     orderBy: [
@@ -45,7 +75,10 @@ export async function matchPro(
   }
 
   return db.professional.findFirst({
-    where: { isAvailable: true },
+    where: {
+      isAvailable: true,
+      ...(requireTeamLead ? { isTeamLead: true } : {}),
+    },
     orderBy: [
       { reliability: 'desc' },
       { rating: 'desc' },

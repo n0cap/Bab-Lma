@@ -24,7 +24,8 @@ type AmountFilter = 'low' | 'medium' | 'high';
 type SurfaceFilter = 'small' | 'medium' | 'large';
 type TeamFilter = 'solo' | 'duo' | 'squad';
 type RatingFilter = '3plus' | '4plus';
-type OffersView = 'offers' | 'teams';
+type OffersView = 'list' | 'map';
+type ListTab = 'offers' | 'teams';
 
 type FilterSets = {
   amount: Set<AmountFilter>;
@@ -92,7 +93,8 @@ function toggleSetValue<T extends string>(set: Set<T>, value: T) {
 
 export function OffersScreen() {
   const nav = useNavigation<Nav>();
-  const [view, setView] = useState<OffersView>('offers');
+  const [view, setView] = useState<OffersView>('list');
+  const [listTab, setListTab] = useState<ListTab>('offers');
   const [filters, setFilters] = useState<FilterSets>({
     amount: new Set<AmountFilter>(),
     surface: new Set<SurfaceFilter>(),
@@ -110,6 +112,7 @@ export function OffersScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useProOrders();
+
   const {
     data: teamSlots = [],
     isLoading: isLoadingTeamSlots,
@@ -142,6 +145,11 @@ export function OffersScreen() {
     );
   }
 
+  const refreshAll = () => {
+    refetch();
+    refetchTeamSlots();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -151,197 +159,225 @@ export function OffersScreen() {
 
       <View style={styles.toggleRow}>
         <Pressable
-          onPress={() => setView('offers')}
-          style={[styles.toggleBtn, view === 'offers' && styles.toggleBtnActive]}
+          onPress={() => setView('list')}
+          style={[styles.toggleBtn, view === 'list' && styles.toggleBtnActive]}
           accessibilityRole="button"
-          accessibilityLabel="Offres"
+          accessibilityLabel="Liste"
         >
-          <Text style={[styles.toggleText, view === 'offers' && styles.toggleTextActive]}>Offres</Text>
+          <Text style={[styles.toggleText, view === 'list' && styles.toggleTextActive]}>Liste</Text>
         </Pressable>
         <Pressable
-          onPress={() => setView('teams')}
-          style={[styles.toggleBtn, view === 'teams' && styles.toggleBtnActive]}
+          onPress={() => setView('map')}
+          style={[styles.toggleBtn, view === 'map' && styles.toggleBtnActive]}
           accessibilityRole="button"
-          accessibilityLabel="Équipes"
+          accessibilityLabel="Carte"
         >
-          <Text style={[styles.toggleText, view === 'teams' && styles.toggleTextActive]}>Équipes</Text>
+          <Text style={[styles.toggleText, view === 'map' && styles.toggleTextActive]}>Carte</Text>
         </Pressable>
       </View>
 
-      {view === 'offers' ? (
+      {view === 'list' ? (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersRow}
-          >
-            <FilterChip
-              label="Prix <200"
-              active={filters.amount.has('low')}
-              onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'low') }))}
-            />
-            <FilterChip
-              label="Prix 200-400"
-              active={filters.amount.has('medium')}
-              onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'medium') }))}
-            />
-            <FilterChip
-              label="Prix 400+"
-              active={filters.amount.has('high')}
-              onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'high') }))}
-            />
-            <FilterChip
-              label="<60m²"
-              active={filters.surface.has('small')}
-              onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'small') }))}
-            />
-            <FilterChip
-              label="60-120m²"
-              active={filters.surface.has('medium')}
-              onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'medium') }))}
-            />
-            <FilterChip
-              label="120m²+"
-              active={filters.surface.has('large')}
-              onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'large') }))}
-            />
-            <FilterChip
-              label="Solo"
-              active={filters.team.has('solo')}
-              onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'solo') }))}
-            />
-            <FilterChip
-              label="Duo"
-              active={filters.team.has('duo')}
-              onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'duo') }))}
-            />
-            <FilterChip
-              label="Squad"
-              active={filters.team.has('squad')}
-              onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'squad') }))}
-            />
-            <FilterChip
-              label="Client 4+"
-              active={filters.rating.has('4plus')}
-              onPress={() => setFilters((prev) => ({ ...prev, rating: toggleSetValue(prev.rating, '4plus') }))}
-            />
-            <FilterChip
-              label="Client 3+"
-              active={filters.rating.has('3plus')}
-              onPress={() => setFilters((prev) => ({ ...prev, rating: toggleSetValue(prev.rating, '3plus') }))}
-            />
-          </ScrollView>
+          <View style={styles.subToggleRow}>
+            <Pressable
+              onPress={() => setListTab('offers')}
+              style={[styles.subToggleBtn, listTab === 'offers' && styles.subToggleBtnActive]}
+              accessibilityRole="button"
+              accessibilityLabel="Offres"
+            >
+              <Text style={[styles.subToggleText, listTab === 'offers' && styles.subToggleTextActive]}>Offres</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setListTab('teams')}
+              style={[styles.subToggleBtn, listTab === 'teams' && styles.subToggleBtnActive]}
+              accessibilityRole="button"
+              accessibilityLabel="Équipes"
+            >
+              <Text style={[styles.subToggleText, listTab === 'teams' && styles.subToggleTextActive]}>Équipes</Text>
+            </Pressable>
+          </View>
 
-          <FlatList
-            data={filteredOffers}
-            keyExtractor={(item) => item.assignmentId}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching || isRefetchingTeamSlots}
-                onRefresh={() => {
-                  refetch();
-                  refetchTeamSlots();
+          {listTab === 'offers' ? (
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersRow}
+              >
+                <FilterChip
+                  label="Prix <200"
+                  active={filters.amount.has('low')}
+                  onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'low') }))}
+                />
+                <FilterChip
+                  label="Prix 200-400"
+                  active={filters.amount.has('medium')}
+                  onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'medium') }))}
+                />
+                <FilterChip
+                  label="Prix 400+"
+                  active={filters.amount.has('high')}
+                  onPress={() => setFilters((prev) => ({ ...prev, amount: toggleSetValue(prev.amount, 'high') }))}
+                />
+                <FilterChip
+                  label="<60m²"
+                  active={filters.surface.has('small')}
+                  onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'small') }))}
+                />
+                <FilterChip
+                  label="60-120m²"
+                  active={filters.surface.has('medium')}
+                  onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'medium') }))}
+                />
+                <FilterChip
+                  label="120m²+"
+                  active={filters.surface.has('large')}
+                  onPress={() => setFilters((prev) => ({ ...prev, surface: toggleSetValue(prev.surface, 'large') }))}
+                />
+                <FilterChip
+                  label="Solo"
+                  active={filters.team.has('solo')}
+                  onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'solo') }))}
+                />
+                <FilterChip
+                  label="Duo"
+                  active={filters.team.has('duo')}
+                  onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'duo') }))}
+                />
+                <FilterChip
+                  label="Squad"
+                  active={filters.team.has('squad')}
+                  onPress={() => setFilters((prev) => ({ ...prev, team: toggleSetValue(prev.team, 'squad') }))}
+                />
+                <FilterChip
+                  label="Client 4+"
+                  active={filters.rating.has('4plus')}
+                  onPress={() => setFilters((prev) => ({ ...prev, rating: toggleSetValue(prev.rating, '4plus') }))}
+                />
+                <FilterChip
+                  label="Client 3+"
+                  active={filters.rating.has('3plus')}
+                  onPress={() => setFilters((prev) => ({ ...prev, rating: toggleSetValue(prev.rating, '3plus') }))}
+                />
+              </ScrollView>
+
+              <FlatList
+                data={filteredOffers}
+                keyExtractor={(item) => item.assignmentId}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefetching || isRefetchingTeamSlots}
+                    onRefresh={refreshAll}
+                    tintColor={colors.navy}
+                  />
+                }
+                onEndReached={() => {
+                  if (hasNextPage && !isFetchingNextPage) fetchNextPage();
                 }}
-                tintColor={colors.navy}
+                onEndReachedThreshold={0.4}
+                ListEmptyComponent={<Text style={styles.emptyText}>Aucune offre avec ces filtres.</Text>}
+                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.navy} /> : null}
+                renderItem={({ item }) => {
+                  const serviceLabel = SERVICE_LABELS[item.serviceType] ?? item.serviceType;
+                  const surfaceText = item.detail?.surface != null ? `${item.detail.surface} m²` : 'Surface non précisée';
+                  const team = item.detail?.teamType?.toLowerCase();
+                  const teamText = team ? (TEAM_LABELS[team] ?? item.detail?.teamType ?? 'Équipe flexible') : 'Équipe flexible';
+                  const rating = (item.client as { rating?: number } | null | undefined)?.rating;
+
+                  return (
+                    <Card style={styles.offerCard}>
+                      <View style={styles.cardTop}>
+                        <Text style={styles.serviceLabel}>{serviceLabel}</Text>
+                        <Chip label="Négociation" variant="warning" />
+                      </View>
+
+                      <Text style={styles.location}>{item.location}</Text>
+                      <Text style={styles.price}>{item.floorPrice} MAD</Text>
+                      <Text style={styles.meta}>{surfaceText} • {teamText}</Text>
+                      {rating != null ? <Text style={styles.meta}>Client: {rating.toFixed(1)} ★</Text> : null}
+
+                      <View style={styles.actions}>
+                        <Button
+                          variant="primary"
+                          label="Accepter"
+                          onPress={() => nav.navigate('Chat', { orderId: item.id })}
+                        />
+                        <Pressable
+                          onPress={() => nav.navigate('ProOrderDetail', { orderId: item.id })}
+                          accessibilityRole="button"
+                          accessibilityLabel="Voir détails"
+                        >
+                          <Text style={styles.detailsLink}>Voir détails</Text>
+                        </Pressable>
+                      </View>
+                    </Card>
+                  );
+                }}
               />
-            }
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-            }}
-            onEndReachedThreshold={0.4}
-            ListEmptyComponent={<Text style={styles.emptyText}>Aucune offre avec ces filtres.</Text>}
-            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.navy} /> : null}
-            renderItem={({ item }) => {
-              const serviceLabel = SERVICE_LABELS[item.serviceType] ?? item.serviceType;
-              const surfaceText = item.detail?.surface != null ? `${item.detail.surface} m²` : 'Surface non précisée';
-              const team = item.detail?.teamType?.toLowerCase();
-              const teamText = team ? (TEAM_LABELS[team] ?? item.detail?.teamType ?? 'Équipe flexible') : 'Équipe flexible';
-              const rating = (item.client as { rating?: number } | null | undefined)?.rating;
+            </>
+          ) : (
+            <FlatList
+              data={teamSlots}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefetchingTeamSlots}
+                  onRefresh={refetchTeamSlots}
+                  tintColor={colors.navy}
+                />
+              }
+              ListEmptyComponent={<Text style={styles.emptyText}>Aucune équipe ouverte pour le moment.</Text>}
+              renderItem={({ item }) => {
+                const serviceLabel = SERVICE_LABELS[item.serviceType] ?? item.serviceType;
+                const teamType = item.detail?.teamType?.toLowerCase();
+                const teamLabel = teamType ? (TEAM_LABELS[teamType] ?? item.detail?.teamType ?? 'Équipe') : 'Équipe';
 
-              return (
-                <Card style={styles.offerCard}>
-                  <View style={styles.cardTop}>
-                    <Text style={styles.serviceLabel}>{serviceLabel}</Text>
-                    <Chip label="Négociation" variant="warning" />
-                  </View>
+                return (
+                  <Card style={styles.offerCard}>
+                    <View style={styles.cardTop}>
+                      <Text style={styles.serviceLabel}>{serviceLabel}</Text>
+                      <Chip label="Équipe" variant="navy" />
+                    </View>
 
-                  <Text style={styles.location}>{item.location}</Text>
-                  <Text style={styles.price}>{item.floorPrice} MAD</Text>
-                  <Text style={styles.meta}>{surfaceText} • {teamText}</Text>
-                  {rating != null ? <Text style={styles.meta}>Client: {rating.toFixed(1)} ★</Text> : null}
+                    <Text style={styles.location}>{item.location}</Text>
+                    <Text style={styles.price}>{item.finalPrice ?? item.floorPrice} MAD</Text>
+                    <Text style={styles.meta}>{teamLabel} • {item.filledSlots}/{item.totalSlots} membres</Text>
+                    <Text style={styles.meta}>Client: {item.client?.fullName ?? 'Client'}</Text>
 
-                  <View style={styles.actions}>
                     <Button
                       variant="primary"
-                      label="Accepter"
-                      onPress={() => nav.navigate('Chat', { orderId: item.id })}
+                      label="Rejoindre"
+                      onPress={() =>
+                        joinRequest.mutate(
+                          { orderId: item.id },
+                          {
+                            onSuccess: () => {
+                              Alert.alert('Demande envoyée', 'Votre demande a été envoyée au chef d\'équipe.');
+                            },
+                            onError: (err: any) => {
+                              Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
+                            },
+                          },
+                        )
+                      }
+                      loading={joinRequest.isPending}
                     />
-                    <Pressable
-                      onPress={() => nav.navigate('ProOrderDetail', { orderId: item.id })}
-                      accessibilityRole="button"
-                      accessibilityLabel="Voir détails"
-                    >
-                      <Text style={styles.detailsLink}>Voir détails</Text>
-                    </Pressable>
-                  </View>
-                </Card>
-              );
-            }}
-          />
+                  </Card>
+                );
+              }}
+            />
+          )}
         </>
       ) : (
-        <FlatList
-          data={teamSlots}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetchingTeamSlots}
-              onRefresh={refetchTeamSlots}
-              tintColor={colors.navy}
-            />
-          }
-          ListEmptyComponent={<Text style={styles.emptyText}>Aucune équipe ouverte pour le moment.</Text>}
-          renderItem={({ item }) => {
-            const serviceLabel = SERVICE_LABELS[item.serviceType] ?? item.serviceType;
-            const teamType = item.detail?.teamType?.toLowerCase();
-            const teamLabel = teamType ? (TEAM_LABELS[teamType] ?? item.detail?.teamType ?? 'Équipe') : 'Équipe';
-
-            return (
-              <Card style={styles.offerCard}>
-                <View style={styles.cardTop}>
-                  <Text style={styles.serviceLabel}>{serviceLabel}</Text>
-                  <Chip label="Équipe" variant="navy" />
-                </View>
-
-                <Text style={styles.location}>{item.location}</Text>
-                <Text style={styles.price}>{item.finalPrice ?? item.floorPrice} MAD</Text>
-                <Text style={styles.meta}>{teamLabel} • {item.filledSlots}/{item.totalSlots} membres</Text>
-                <Text style={styles.meta}>Client: {item.client?.fullName ?? 'Client'}</Text>
-
-                <Button
-                  variant="primary"
-                  label="Rejoindre"
-                  onPress={() =>
-                    joinRequest.mutate(
-                      { orderId: item.id },
-                      {
-                        onSuccess: () => {
-                          Alert.alert('Demande envoyée', 'Votre demande a été envoyée au chef d’équipe.');
-                        },
-                        onError: (err: any) => {
-                          Alert.alert('Erreur', err?.response?.data?.error?.message ?? 'Action impossible.');
-                        },
-                      },
-                    )
-                  }
-                  loading={joinRequest.isPending}
-                />
-              </Card>
-            );
-          }}
-        />
+        <View style={styles.comingSoonWrap}>
+          <Text style={styles.comingSoonIcon}>🗺️</Text>
+          <Text style={styles.comingSoonTitle}>Carte des offres</Text>
+          <Text style={styles.comingSoonSubtitle}>
+            Bientôt, visualisez les offres sur une carte avec leur localisation approximative.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -389,7 +425,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.full,
     padding: 4,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     gap: spacing.xs,
   },
   toggleBtn: {
@@ -406,6 +442,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   toggleTextActive: {
+    color: colors.white,
+  },
+  subToggleRow: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  subToggleBtn: {
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  subToggleBtnActive: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
+  subToggleText: {
+    color: colors.textSec,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  subToggleTextActive: {
     color: colors.white,
   },
   filtersRow: {
@@ -465,5 +527,29 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: 'DMSans_500Medium',
     marginTop: spacing['2xl'],
+  },
+  comingSoonWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  comingSoonIcon: {
+    fontSize: 42,
+  },
+  comingSoonTitle: {
+    color: colors.navy,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 20,
+    textAlign: 'center',
+  },
+  comingSoonSubtitle: {
+    color: colors.textMuted,
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    maxWidth: 320,
   },
 });

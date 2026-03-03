@@ -193,7 +193,7 @@ export function ProOrderDetailScreen() {
                             },
                           )
                         }
-                        loading={approveJoinRequest.isPending}
+                        loading={approveJoinRequest.isPending && approveJoinRequest.variables?.assignmentId === request.id}
                       />
                       <Button
                         variant="outline"
@@ -211,7 +211,7 @@ export function ProOrderDetailScreen() {
                             },
                           )
                         }
-                        loading={rejectJoinRequest.isPending}
+                        loading={rejectJoinRequest.isPending && rejectJoinRequest.variables?.assignmentId === request.id}
                       />
                     </View>
                   </View>

@@ -105,7 +105,7 @@ async function main() {
   // Create Professional profiles
   await prisma.professional.upsert({
     where: { userId: proUser1.id },
-    update: {},
+    update: { isTeamLead: true },
     create: {
       userId: proUser1.id,
       skills: ['menage', 'cuisine'],
@@ -115,6 +115,7 @@ async function main() {
       reliability: 97,
       zones: ['agdal', 'hay_riad', 'hassan'],
       isAvailable: true,
+      isTeamLead: true,
     },
   });
 
